@@ -150,20 +150,21 @@ function println(text) {
 
 const handlers = {
   alias: alias,
-  ls: list,
   cat: concatenate,
   cd: changeDirectory,
-  clear: clear,
-  echo: echo,
-  chroot: permissionDenied("chroot"),
-  su: permissionDenied("su"),
-  sudo: permissionDenied("sudo"),
-  rm: permissionDenied("rm"),
-  mv: permissionDenied("mv"),
-  cp: permissionDenied("cp"),
-  touch: permissionDenied("touch"),
   chmod: permissionDenied("chmod"),
   chown: permissionDenied("chown"),
+  chroot: permissionDenied("chroot"),
+  clear: clear,
+  cp: permissionDenied("cp"),
+  echo: echo,
+  ls: list,
+  mkdir: makeDirectory,
+  mv: permissionDenied("mv"),
+  rm: permissionDenied("rm"),
+  su: permissionDenied("su"),
+  sudo: permissionDenied("sudo"),
+  touch: permissionDenied("touch"),
 };
 
 const HTML_SPACE_CHAR = " ";
@@ -344,6 +345,35 @@ function concatenate(args) {
   }
 
   println(`cat: ${filePath}: No such file or directory`);
+}
+
+function makeDirectory(args) {
+  const dirPath = args[0];
+
+  if (!dirPath) {
+    println("mkdir: missing operand");
+    return;
+  }
+
+  const dir = Path.resolve(dirPath);
+
+  if (dir) {
+    println(`mkdir: cannot create directory '${dirPath}': File exists`);
+    return;
+  }
+
+  const pathParts = dirPath.split("/");
+  const dirName = pathParts.pop();
+  const parentDir = Path.resolve(pathParts.join("/"));
+
+  if (!parentDir) {
+    println(
+      `mkdir: cannot create directory '${dirPath}': No such file or directory`
+    );
+    return;
+  }
+
+  parentDir[dirName] = {};
 }
 
 class Path {
