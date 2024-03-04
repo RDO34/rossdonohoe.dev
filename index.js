@@ -291,9 +291,21 @@ function changeDirectory(args) {
     return;
   }
 
-  if ("") {
-    state.path = newPath;
+  const newFullPath = Path.join(newPath) || state.path;
+  console.log(newFullPath);
+  const target = Path.resolve(newFullPath);
+
+  if (!target) {
+    println(`cd: ${newPath}: No such file or directory`);
+    return;
   }
+
+  if (typeof target !== "object") {
+    println(`cd: ${newPath}: Not a directory`);
+    return;
+  }
+
+  state.path = newFullPath;
 }
 
 function echo(args) {
@@ -323,14 +335,35 @@ function concatenate(args) {
 
   if (typeof file === "string") {
     println(file);
-  } else {
-    println(`cat: ${filePath}: No such file or directory`);
+    return;
   }
+
+  if (typeof file === "object") {
+    println(`cat: ${filePath}: Is a directory`);
+    return;
+  }
+
+  println(`cat: ${filePath}: No such file or directory`);
 }
 
 class Path {
-  static join(...args) {
-    return args.join("/");
+  static join(_path) {
+    let baseParts = state.path;
+    let path = _path;
+
+    if (path.startsWith("./")) {
+      path = path.slice(2);
+    }
+
+    while (path.startsWith("../")) {
+      path = path.slice(3);
+      baseParts = baseParts.split("/").slice(0, -1).join("/");
+    }
+
+    return [
+      ...baseParts.split("/").filter(Boolean),
+      ...path.split("/").filter(Boolean),
+    ].join("/");
   }
 
   static resolve(_path) {
@@ -359,6 +392,11 @@ class Path {
 
     while (path.startsWith("../")) {
       path = path.slice(3);
+    }
+
+    if (path.startsWith("~/")) {
+      path = path.slice(2);
+      currentDir = dirMap["~"];
     }
 
     const pathParts = path.split("/").filter(Boolean);
