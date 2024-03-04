@@ -271,6 +271,10 @@ const handlers = {
   unset: permissionDenied("unset"),
   wait: permissionDenied("wait"),
   while: permissionDenied("while"),
+
+  apt: permissionDenied("apt"),
+  "apt-get": permissionDenied("apt-get"),
+  curl: permissionDenied("curl"),
   ls: list,
   mkdir: makeDirectory,
   mv: permissionDenied("mv"),
@@ -281,6 +285,7 @@ const handlers = {
   touch: makeFile,
   vi: permissionDenied("vi"),
   vim: permissionDenied("vim"),
+  wget: permissionDenied("wget"),
 };
 
 const HTML_SPACE_CHAR = " ";
@@ -571,7 +576,8 @@ function history(_args) {
   for (const [idx, cmd] of state.hist.entries()) {
     const newLine = document.createElement("span");
     newLine.classList.add("terminal-line");
-    newLine.innerHTML += idx;
+    newLine.innerHTML += "&nbsp;";
+    newLine.innerHTML += idx + 1;
     newLine.innerHTML += "&Tab;";
     newLine.innerHTML += cmd;
     document.querySelector(".terminal").appendChild(newLine);
