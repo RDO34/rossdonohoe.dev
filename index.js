@@ -9,7 +9,7 @@ const state = {
 
 const dirMap = {
   "~": {
-    ".secret.txt": "You can't see me",
+    ".secret.txt": "😊",
     "about-me.txt": "I'm a software engineer",
     blog: {
       "placeholder.txt": "Pfft, I don't have a blog",
