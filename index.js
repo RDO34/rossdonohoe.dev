@@ -230,13 +230,51 @@ const handlers = {
   export: exportFn,
   false: permissionDenied("false"),
   fc: fixCommand,
+  fg: permissionDenied("fg"),
+  for: permissionDenied("for"),
+  function: permissionDenied("function"),
+  getopts: noop,
+  hash: permissionDenied("hash"),
+  help: help,
+  history: history,
+  if: permissionDenied("if"),
+  jobs: permissionDenied("jobs"),
+  kill: permissionDenied("kill"),
+  let: permissionDenied("let"),
+  local: permissionDenied("local"),
+  logout: permissionDenied("logout"),
+  mapfile: permissionDenied("mapfile"),
+  popd: popd,
+  printf: echo,
+  pushd: pushd,
+  pwd: processWorkingDirectory,
+  read: permissionDenied("read"),
+  readarray: permissionDenied("readarray"),
+  readonly: permissionDenied("readonly"),
+  return: permissionDenied("return"),
+  select: permissionDenied("select"),
+  set: permissionDenied("set"),
+  shift: permissionDenied("shift"),
+  shopt: permissionDenied("shopt"),
+  source: permissionDenied("source"),
+  suspend: permissionDenied("suspend"),
+  test: permissionDenied("test"),
+  time: permissionDenied("time"),
+  times: permissionDenied("times"),
+  trap: permissionDenied("trap"),
+  true: permissionDenied("true"),
+  type: permissionDenied("type"),
+  typeset: permissionDenied("typeset"),
+  ulimit: permissionDenied("ulimit"),
+  umask: permissionDenied("umask"),
+  unalias: permissionDenied("unalias"),
+  unset: permissionDenied("unset"),
+  wait: permissionDenied("wait"),
+  while: permissionDenied("while"),
   ls: list,
   mkdir: makeDirectory,
   mv: permissionDenied("mv"),
   nano: permissionDenied("nano"),
-  popd: popd,
-  pushd: pushd,
-  pwd: processWorkingDirectory,
   rm: permissionDenied("rm"),
   su: permissionDenied("su"),
   sudo: permissionDenied("sudo"),
@@ -274,6 +312,16 @@ function permissionDenied(command) {
   return function () {
     println(`sh: ${command}: permission denied`);
   };
+}
+
+function noop() {
+  println("");
+}
+
+function help() {
+  for (const line of CONSTANTS.HELP.split("\n")) {
+    println(line);
+  }
 }
 
 function clear() {
@@ -519,7 +567,7 @@ function exportFn(args) {
   state.env[envVar] = value;
 }
 
-function fixCommand(_args) {
+function history(_args) {
   for (const [idx, cmd] of state.hist.entries()) {
     const newLine = document.createElement("span");
     newLine.classList.add("terminal-line");
@@ -528,6 +576,10 @@ function fixCommand(_args) {
     newLine.innerHTML += cmd;
     document.querySelector(".terminal").appendChild(newLine);
   }
+}
+
+function fixCommand(args) {
+  return history(args);
 }
 
 class Path {
@@ -638,3 +690,52 @@ async function welcome() {
 }
 
 scipts.welcome();
+
+const CONSTANTS = {
+  HELP: `GNU bash, version 5.1.16(1)-release (x86_64-pc-linux-gnu)
+These shell commands are defined internally.  Type \help' to see this list.
+Type \help name' to find out more about the function \name'.
+Use \info bash' to find out more about the shell in general.
+Use \man -k' or \`info' to find out more about commands not in this list.
+
+A star (*) next to a name means that the command is disabled.
+
+ job_spec [&]                                      history [-c] [-d offset] [n] or history -anrw >
+ (( expression ))                                  if COMMANDS; then COMMANDS; [ elif COMMANDS; t>
+ . filename [arguments]                            jobs [-lnprs] [jobspec ...] or jobs -x command>
+ :                                                 kill [-s sigspec | -n signum | -sigspec] pid |>
+ [ arg... ]                                        let arg [arg ...]
+ [[ expression ]]                                  local [option] name[=value] ...
+ alias [-p] [name[=value] ... ]                    logout [n]
+ bg [job_spec ...]                                 mapfile [-d delim] [-n count] [-O origin] [-s >
+ bind [-lpsvPSVX] [-m keymap] [-f filename] [-q >  popd [-n] [+N | -N]
+ break [n]                                         printf [-v var] format [arguments]
+ builtin [shell-builtin [arg ...]]                 pushd [-n] [+N | -N | dir]
+ caller [expr]                                     pwd [-LP]
+ case WORD in [PATTERN [| PATTERN]...) COMMANDS >  read [-ers] [-a array] [-d delim] [-i text] [->
+ cd [-L|[-P [-e]] [-@]] [dir]                      readarray [-d delim] [-n count] [-O origin] [->
+ command [-pVv] command [arg ...]                  readonly [-aAf] [name[=value] ...] or readonly>
+ compgen [-abcdefgjksuv] [-o option] [-A action]>  return [n]
+ complete [-abcdefgjksuv] [-pr] [-DEI] [-o optio>  select NAME [in WORDS ... ;] do COMMANDS; done
+ compopt [-o|+o option] [-DEI] [name ...]          set [-abefhkmnptuvxBCHP] [-o option-name] [--]>
+ continue [n]                                      shift [n]
+ coproc [NAME] command [redirections]              shopt [-pqsu] [-o] [optname ...]
+ declare [-aAfFgiIlnrtux] [-p] [name[=value] ...>  source filename [arguments]
+ dirs [-clpv] [+N] [-N]                            suspend [-f]
+ disown [-h] [-ar] [jobspec ... | pid ...]         test [expr]
+ echo [-neE] [arg ...]                             time [-p] pipeline
+ enable [-a] [-dnps] [-f filename] [name ...]      times
+ eval [arg ...]                                    trap [-lp] [[arg] signal_spec ...]
+ exec [-cl] [-a name] [command [argument ...]] [>  true
+ exit [n]                                          type [-afptP] name [name ...]
+ export [-fn] [name[=value] ...] or export -p      typeset [-aAfFgiIlnrtux] [-p] name[=value] ...
+ false                                             ulimit [-SHabcdefiklmnpqrstuvxPT] [limit]
+ fc [-e ename] [-lnr] [first] [last] or fc -s [p>  umask [-p] [-S] [mode]
+ fg [job_spec]                                     unalias [-a] name [name ...]
+ for NAME [in WORDS ... ] ; do COMMANDS; done      unset [-f] [-v] [-n] [name ...]
+ for (( exp1; exp2; exp3 )); do COMMANDS; done     until COMMANDS; do COMMANDS; done
+ function name { COMMANDS ; } or name () { COMMA>  variables - Names and meanings of some shell v>
+ getopts optstring name [arg ...]                  wait [-fn] [-p var] [id ...]
+ hash [-lr] [-p pathname] [-dt] [name ...]         while COMMANDS; do COMMANDS; done
+ help [-dms] [pattern ...]                         { COMMANDS ; }`,
+};
