@@ -2,6 +2,9 @@ const state = {
   path: "~",
   env: {},
   date: new Date(),
+  dirs: ["/home/guest"],
+  hist: [],
+  histPtr: null,
 };
 
 const dirMap = {
@@ -40,6 +43,14 @@ addEventListener("keydown", function (e) {
 
   if (e.key === "ArrowRight") {
     moveCaretForward();
+  }
+
+  if (e.key === "ArrowUp") {
+    moveHistoryBack();
+  }
+
+  if (e.key === "ArrowDown") {
+    moveHistoryForward();
   }
 
   // SIGINT
@@ -93,7 +104,51 @@ function moveCaretForward() {
   }
 }
 
+function moveHistoryBack() {
+  if (state.histPtr === null) {
+    state.histPtr = state.hist.length - 1;
+  } else if (state.histPtr > 0) {
+    state.histPtr = Math.max(0, state.histPtr - 1);
+  }
+
+  createInputLine(state.hist[state.histPtr]);
+}
+
+function moveHistoryForward() {
+  if (state.histPtr === null) {
+    return;
+  }
+
+  if (state.histPtr === state.hist.length - 1) {
+    state.histPtr = null;
+    createInputLine("");
+    return;
+  }
+
+  state.histPtr = Math.min(state.hist.length - 1, state.histPtr + 1);
+  createInputLine(state.hist[state.histPtr]);
+}
+
+function createInputLine(text) {
+  const commands = document.querySelectorAll(".terminal-input");
+  const lastCommand = commands[commands.length - 1];
+
+  const children = text.split("").map((char) => {
+    const span = document.createElement("span");
+    span.innerHTML = encodeHtml(char);
+    return span;
+  });
+
+  const newCaret = document.createElement("span");
+  newCaret.classList.add("caret");
+
+  lastCommand.innerHTML = "";
+  lastCommand.append(...children);
+  lastCommand.appendChild(newCaret);
+}
+
 function createNewLine() {
+  state.histPtr = null;
   const newLine = document.createElement("span");
   newLine.classList.add("terminal-line");
 
@@ -150,21 +205,44 @@ function println(text) {
 
 const handlers = {
   alias: alias,
+  bg: permissionDenied("bg"),
+  bind: permissionDenied("bind"),
+  builtin: permissionDenied("builtin"),
   cat: concatenate,
+  caller: permissionDenied("caller"),
   cd: changeDirectory,
   chmod: permissionDenied("chmod"),
   chown: permissionDenied("chown"),
   chroot: permissionDenied("chroot"),
   clear: clear,
+  compgen: permissionDenied("compgen"),
+  complete: permissionDenied("complete"),
+  compopt: permissionDenied("compopt"),
+  coproc: permissionDenied("coproc"),
   cp: permissionDenied("cp"),
+  dirs: dirs,
+  disown: permissionDenied("disown"),
   echo: echo,
+  enable: permissionDenied("enable"),
+  eval: permissionDenied("eval"),
+  exec: permissionDenied("exec"),
+  exit: permissionDenied("exit"),
+  export: exportFn,
+  false: permissionDenied("false"),
+  fc: fixCommand,
   ls: list,
   mkdir: makeDirectory,
   mv: permissionDenied("mv"),
+  nano: permissionDenied("nano"),
+  popd: popd,
+  pushd: pushd,
+  pwd: processWorkingDirectory,
   rm: permissionDenied("rm"),
   su: permissionDenied("su"),
   sudo: permissionDenied("sudo"),
-  touch: permissionDenied("touch"),
+  touch: makeFile,
+  vi: permissionDenied("vi"),
+  vim: permissionDenied("vim"),
 };
 
 const HTML_SPACE_CHAR = " ";
@@ -174,6 +252,7 @@ function handleCommand() {
   const command = commands[commands.length - 1].textContent.trim();
   if (command.length > 0) {
     cmd(command);
+    state.hist.push(command);
   }
 }
 
@@ -293,7 +372,6 @@ function changeDirectory(args) {
   }
 
   const newFullPath = Path.join(newPath) || state.path;
-  console.log(newFullPath);
   const target = Path.resolve(newFullPath);
 
   if (!target) {
@@ -307,6 +385,7 @@ function changeDirectory(args) {
   }
 
   state.path = newFullPath;
+  state.dirs.push(Path.absolute(newFullPath));
 }
 
 function echo(args) {
@@ -376,6 +455,81 @@ function makeDirectory(args) {
   parentDir[dirName] = {};
 }
 
+function makeFile(args) {
+  const filePath = args[0];
+
+  if (!filePath) {
+    println("touch: missing file operand");
+    return;
+  }
+
+  const file = Path.resolve(filePath);
+
+  if (file) {
+    println(`touch: cannot create file '${filePath}': File exists`);
+    return;
+  }
+
+  const pathParts = filePath.split("/");
+  const fileName = pathParts.pop();
+  const parentDir = Path.resolve(pathParts.join("/"));
+
+  if (!parentDir) {
+    println(
+      `touch: cannot create file '${filePath}': No such file or directory`
+    );
+    return;
+  }
+
+  parentDir[fileName] = "";
+}
+
+function processWorkingDirectory() {
+  println(Path.absolute(state.path));
+}
+
+function dirs() {
+  println(state.dirs.join(" "));
+}
+
+function pushd(args) {
+  const dirPath = args[0];
+
+  if (!dirPath) {
+    println("pushd: missing operand");
+    return;
+  }
+
+  const dir = Path.resolve(dirPath);
+
+  if (!dir) {
+    println(`pushd: ${dirPath}: No such file or directory`);
+    return;
+  }
+
+  state.dirs.push(Path.absolute(dirPath));
+}
+
+function popd() {
+  state.dirs.pop();
+}
+
+function exportFn(args) {
+  const [envVar, value] = args[0].split("=");
+  state.env[envVar] = value;
+}
+
+function fixCommand(_args) {
+  for (const [idx, cmd] of state.hist.entries()) {
+    const newLine = document.createElement("span");
+    newLine.classList.add("terminal-line");
+    newLine.innerHTML += idx;
+    newLine.innerHTML += "&Tab;";
+    newLine.innerHTML += cmd;
+    document.querySelector(".terminal").appendChild(newLine);
+  }
+}
+
 class Path {
   static join(_path) {
     let baseParts = state.path;
@@ -436,6 +590,15 @@ class Path {
     }
 
     return resolved;
+  }
+
+  static absolute(_path) {
+    if (_path.startsWith("/")) {
+      return _path;
+    }
+
+    const path = _path.slice(1);
+    return `/home/guest${path}`;
   }
 }
 
