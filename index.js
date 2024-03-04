@@ -13,13 +13,9 @@ const dirMap = {
 };
 
 addEventListener("keypress", function (e) {
-  console.log(e.key);
-
   if (e.key.length === 1) {
     inputChar(e.key);
   }
-
-  // e.preventDefault();
 });
 
 addEventListener("keydown", function (e) {
@@ -44,8 +40,6 @@ addEventListener("keydown", function (e) {
   if (e.key === "c" && e.ctrlKey) {
     createNewLine();
   }
-
-  // e.preventDefault();
 });
 
 function inputChar(char) {
@@ -149,13 +143,10 @@ const HTML_SPACE_CHAR = " ";
 
 function handleCommand() {
   const commands = document.querySelectorAll(".terminal-input");
-  console.log(commands);
+
   const command = commands[commands.length - 1].textContent.trim();
 
   const [baseCommand, ...args] = command.split(HTML_SPACE_CHAR);
-  console.log(args);
-  console.log(baseCommand);
-  console.log(command);
 
   if (handlers[baseCommand]) {
     handlers[baseCommand](args);
