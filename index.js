@@ -8,11 +8,13 @@ const state = {
 };
 
 const dirMap = {
-  "~": {
-    ".secret.txt": "😊",
-    "about-me.txt": "I'm a software engineer",
-    blog: {
-      "placeholder.txt": "Pfft, I don't have a blog",
+  home: {
+    guest: {
+      ".secret.txt": "😊",
+      "about-me.txt": "I'm a software engineer",
+      blog: {
+        "placeholder.txt": "Pfft, I don't have a blog",
+      },
     },
   },
 };
@@ -345,9 +347,15 @@ function clear() {
 
 function list(args) {
   const pathArg = args.find((arg) => !arg.startsWith("-"));
+
+  if (Path.outOfBounds(pathArg)) {
+    permissionDenied("ls")([pathArg]);
+    return;
+  }
+
   const dir = Path.resolve(pathArg);
 
-  if (typeof dir === "string") {
+  if (!dir) {
     println(`ls: cannot access '${pathArg}': No such file or directory`);
     return;
   }
@@ -360,6 +368,10 @@ function list(args) {
 
   if (!includeHidden) {
     entries = entries.filter((entry) => !entry.startsWith("."));
+  }
+
+  if (typeof dir === "string") {
+    entries = [pathArg.split("/").pop()];
   }
 
   const longFormat = args.some(
@@ -417,23 +429,12 @@ function changeDirectory(args) {
     return;
   }
 
-  const isNotPermitted =
-    (state.path === "~" && newPath === "..") || newPath.startsWith("/");
-
-  if (isNotPermitted) {
+  if (Path.outOfBounds(newPath)) {
     permissionDenied("cd")([newPath]);
     return;
   }
 
-  const pathParts = state.path.split("/");
-
-  if (newPath === "..") {
-    pathParts.pop();
-    state.path = pathParts.join("/");
-    return;
-  }
-
-  const newFullPath = Path.join(newPath) || state.path;
+  const newFullPath = Path.absolute(newPath);
   const target = Path.resolve(newFullPath);
 
   if (!target) {
@@ -446,7 +447,7 @@ function changeDirectory(args) {
     return;
   }
 
-  state.path = newFullPath;
+  state.path = newFullPath.replace("/home/guest", "~");
   state.dirs.push(Path.absolute(newFullPath));
 }
 
@@ -598,61 +599,47 @@ function fixCommand(args) {
 }
 
 class Path {
-  static join(_path) {
-    let baseParts = state.path;
-    let path = _path;
-
-    if (path.startsWith("./")) {
-      path = path.slice(2);
+  static traverse(_path) {
+    if (["~", "~/"].includes(_path)) {
+      return dirMap.home.guest["~"];
     }
 
-    while (path.startsWith("../")) {
-      path = path.slice(3);
-      baseParts = baseParts.split("/").slice(0, -1).join("/");
+    const basePath = ["home", "guest"];
+    let targetPath = _path;
+    let currentRelativePath = state.path.slice(1).split("/").filter(Boolean);
+
+    if (targetPath.startsWith("/home/guest")) {
+      targetPath = targetPath.slice(11);
+      currentRelativePath = [];
     }
 
-    return [
-      ...baseParts.split("/").filter(Boolean),
-      ...path.split("/").filter(Boolean),
-    ].join("/");
+    if (targetPath.startsWith("~/")) {
+      targetPath = targetPath.slice(2);
+      currentRelativePath = [];
+    }
+
+    const resolvedPath = [...basePath, ...currentRelativePath];
+
+    const targetPathParts = targetPath.split("/").filter(Boolean);
+
+    for (const part of targetPathParts) {
+      if (part === "..") {
+        resolvedPath.pop();
+      } else if (part === ".") {
+        continue;
+      } else {
+        resolvedPath.push(part);
+      }
+    }
+
+    return resolvedPath;
   }
 
-  static resolve(_path) {
-    const dirPathParts = state.path.split("/").filter(Boolean);
+  static resolve(_path = "") {
+    const resolvedPath = Path.traverse(_path);
 
-    if (_path) {
-      const upTimes = (_path.match(/\.\./g) || []).length;
-      dirPathParts.splice(-upTimes, upTimes);
-    }
-
-    let currentDir = dirMap[dirPathParts.shift()];
-
-    while (dirPathParts.length > 0) {
-      currentDir = currentDir[dirPathParts.shift()];
-    }
-
-    if (!_path) {
-      return currentDir;
-    }
-
-    let path = _path;
-
-    if (path.startsWith("./")) {
-      path = path.slice(2);
-    }
-
-    while (path.startsWith("../")) {
-      path = path.slice(3);
-    }
-
-    if (path.startsWith("~/")) {
-      path = path.slice(2);
-      currentDir = dirMap["~"];
-    }
-
-    const pathParts = path.split("/").filter(Boolean);
-    let resolved = currentDir[pathParts.shift()];
-    for (const part of pathParts) {
+    let resolved = dirMap[resolvedPath.shift()];
+    for (const part of resolvedPath) {
       resolved = resolved[part];
     }
 
@@ -660,12 +647,13 @@ class Path {
   }
 
   static absolute(_path) {
-    if (_path.startsWith("/")) {
-      return _path;
-    }
+    const path = Path.traverse(_path);
+    return `/${path.join("/")}`;
+  }
 
-    const path = _path.slice(1);
-    return `/home/guest${path}`;
+  static outOfBounds(_path = "") {
+    const path = Path.absolute(_path);
+    return path.startsWith("/") && !path.startsWith("/home/guest");
   }
 }
 
