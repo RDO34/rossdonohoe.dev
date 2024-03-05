@@ -600,11 +600,12 @@ function fixCommand(args) {
 
 class Path {
   static traverse(_path) {
+    const basePath = ["home", "guest"];
+
     if (["~", "~/"].includes(_path)) {
-      return dirMap.home.guest["~"];
+      return basePath;
     }
 
-    const basePath = ["home", "guest"];
     let targetPath = _path;
     let currentRelativePath = state.path.slice(1).split("/").filter(Boolean);
 
@@ -623,10 +624,10 @@ class Path {
     const targetPathParts = targetPath.split("/").filter(Boolean);
 
     for (const part of targetPathParts) {
-      if (part === "..") {
-        resolvedPath.pop();
-      } else if (part === ".") {
+      if (part === ".") {
         continue;
+      } else if (part === "..") {
+        resolvedPath.pop();
       } else {
         resolvedPath.push(part);
       }
@@ -638,7 +639,7 @@ class Path {
   static resolve(_path = "") {
     const resolvedPath = Path.traverse(_path);
 
-    let resolved = dirMap[resolvedPath.shift()];
+    let resolved = dirMap;
     for (const part of resolvedPath) {
       resolved = resolved[part];
     }
