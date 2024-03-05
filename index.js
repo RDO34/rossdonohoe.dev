@@ -19,42 +19,51 @@ const dirMap = {
 
 addEventListener("keypress", function (e) {
   if (e.key.length === 1) {
+    e.preventDefault();
     inputChar(e.key);
   }
 });
 
 addEventListener("keydown", function (e) {
   if (e.key === "Enter") {
+    e.preventDefault();
     handleCommand();
     createNewLine();
   }
 
   if (e.key === "Backspace") {
+    e.preventDefault();
     deletePrevChar();
   }
 
   if (e.key === "Delete") {
+    e.preventDefault();
     deleteCurrentChar();
   }
 
   if (e.key === "ArrowLeft") {
+    e.preventDefault();
     moveCaretBack();
   }
 
   if (e.key === "ArrowRight") {
+    e.preventDefault();
     moveCaretForward();
   }
 
   if (e.key === "ArrowUp") {
+    e.preventDefault();
     moveHistoryBack();
   }
 
   if (e.key === "ArrowDown") {
+    e.preventDefault();
     moveHistoryForward();
   }
 
   // SIGINT
   if (e.key === "c" && e.ctrlKey) {
+    e.preventDefault();
     createNewLine();
   }
 });
