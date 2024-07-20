@@ -22,6 +22,14 @@ body {
   margin: 0;
 }
 
+a {
+  color: #42c2f5;
+}
+
+a:visited {
+  color: #7f7dff;
+}
+
 .window-frame {
   border-color: #c0c2c4;
   border-width: 1px;

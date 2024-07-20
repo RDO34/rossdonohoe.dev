@@ -12,6 +12,16 @@ const dirMap = {
     guest: {
       ".secret.txt": "😊",
       "about-me.txt": "I'm a software engineer",
+      "about-this-site.txt": `Ok, ok, yes. This isn't a real terminal.
+
+You got me.
+
+If you're trying to do some cool grep-pipe-xargs wizardry it won't work.
+
+This was just a fun way to present some information in a way that shows what I enjoy.
+
+I will come back and implement a vim emulator one day, I swear...`,
+      "links.txt": `[github](https://github.com/rdo34)&nbsp;|&nbsp;[linkedin](https://linkedin.com/in/ross-james-donohoe)`,
       blog: {
         "placeholder.txt": "Pfft, I don't have a blog",
       },
@@ -210,7 +220,24 @@ function makeLeaderText() {
 function println(text) {
   const newLine = document.createElement("span");
   newLine.classList.add("terminal-line");
-  newLine.innerHTML = text;
+
+  let innerHTML = text;
+  innerHTML.replace("\n", "<br>");
+  const elements = innerHTML.match(/\[.*?\)/g);
+
+  if (elements != null && elements.length > 0) {
+    for (const element of elements) {
+      const label = element.match(/\[(.*?)\]/)[1];
+      const url = element.match(/\((.*?)\)/)[1];
+
+      innerHTML = innerHTML.replace(
+        element,
+        `<a href="${url}" target="_blank">${label}</a>`
+      );
+    }
+  }
+
+  newLine.innerHTML = innerHTML;
   document.querySelector(".terminal").appendChild(newLine);
 }
 
@@ -437,13 +464,13 @@ function changeDirectory(args) {
   const newFullPath = Path.absolute(newPath);
   const target = Path.resolve(newFullPath);
 
-  if (!target) {
-    println(`cd: ${newPath}: No such file or directory`);
+  if (typeof target !== "object") {
+    println(`cd: ${newPath}: Not a directory`);
     return;
   }
 
-  if (typeof target !== "object") {
-    println(`cd: ${newPath}: Not a directory`);
+  if (!target) {
+    println(`cd: ${newPath}: No such file or directory`);
     return;
   }
 
