@@ -217,23 +217,25 @@ function makeLeaderText() {
   return `guest@rossdonohoe.dev:${state.path}$`;
 }
 
-function println(text) {
+function println(text, parseLinks = false) {
   const newLine = document.createElement("span");
   newLine.classList.add("terminal-line");
 
   let innerHTML = text;
-  innerHTML.replace("\n", "<br>");
-  const elements = innerHTML.match(/\[.*?\)/g);
 
-  if (elements != null && elements.length > 0) {
-    for (const element of elements) {
-      const label = element.match(/\[(.*?)\]/)[1];
-      const url = element.match(/\((.*?)\)/)[1];
+  if (parseLinks) {
+    const elements = innerHTML.match(/\[.*?\)/g);
 
-      innerHTML = innerHTML.replace(
-        element,
-        `<a href="${url}" target="_blank">${label}</a>`
-      );
+    if (elements != null && elements.length > 0) {
+      for (const element of elements) {
+        const label = element.match(/\[(.*?)\]/)[1];
+        const url = element.match(/\((.*?)\)/)[1];
+
+        innerHTML = innerHTML.replace(
+          element,
+          `<a href="${url}" target="_blank">${label}</a>`
+        );
+      }
     }
   }
 
@@ -504,7 +506,7 @@ function concatenate(args) {
   const file = Path.resolve(filePath);
 
   if (typeof file === "string") {
-    println(file);
+    println(file, true);
     return;
   }
 
