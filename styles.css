@@ -22,11 +22,13 @@ body {
   margin: 0;
 }
 
-a {
-  color: #42c2f5;
+a,
+a:visited {
+  color: #f8f8f2;
 }
 
-a:visited {
+a:hover,
+a:visited:hover {
   color: #7f7dff;
 }
 
