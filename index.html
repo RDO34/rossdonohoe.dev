@@ -11,12 +11,25 @@
   </head>
 
   <body>
-    <div class="window-frame">
-      <header class="window-header">
+    <div class="window-frame" id="window">
+      <header class="window-header" id="window-header">
         <div class="header-controls">
-          <button class="header-control close"></button>
-          <button class="header-control minimize" disabled=""></button>
-          <button class="header-control fullscreen"></button>
+          <button class="header-control close" id="btn-close">
+            <svg class="control-icon" viewBox="0 0 12 12">
+              <path d="M3 3 L9 9 M9 3 L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="header-control minimize" id="btn-minimize">
+            <svg class="control-icon" viewBox="0 0 12 12">
+              <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
+            </svg>
+          </button>
+          <button class="header-control fullscreen" id="btn-maximize">
+            <svg class="control-icon" viewBox="0 0 12 12">
+              <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
+              <rect x="5.5" y="2.5" width="1.5" height="7" fill="currentColor"/>
+            </svg>
+          </button>
         </div>
 
         <h1 class="header-title">rossdonohoe.dev</h1>
@@ -33,6 +46,15 @@
           </span>
         </span>
       </main>
+
+      <div class="resize-handle resize-n"></div>
+      <div class="resize-handle resize-e"></div>
+      <div class="resize-handle resize-s"></div>
+      <div class="resize-handle resize-w"></div>
+      <div class="resize-handle resize-ne"></div>
+      <div class="resize-handle resize-nw"></div>
+      <div class="resize-handle resize-se"></div>
+      <div class="resize-handle resize-sw"></div>
     </div>
 
     <script src="index.js"></script>

@@ -11,7 +11,11 @@ const dirMap = {
   home: {
     guest: {
       ".secret.txt": "😊",
-      "about-me.txt": "I'm a software engineer",
+      "about-me.txt": `Software engineer with ${new Date().getFullYear() - 2018}+ years of production experience.
+
+Terminal nerd passionate about shipping quality software.
+
+Drop me a line at [rossdon.95@googlemail.com](mailto:rossdon.95@googlemail.com).`,
       "about-this-site.txt": `Ok, ok, yes. This isn't a real terminal.
 
 You got me.
@@ -103,7 +107,9 @@ function deleteCurrentChar() {
 
   if (current) {
     parentNode.removeChild(current);
-    next.classList.add("caret");
+    if (next) {
+      next.classList.add("caret");
+    }
   }
 }
 
@@ -377,12 +383,12 @@ function clear() {
 function list(args) {
   const pathArg = args.find((arg) => !arg.startsWith("-"));
 
-  if (Path.outOfBounds(pathArg)) {
+  if (pathArg && Path.outOfBounds(pathArg)) {
     permissionDenied("ls")([pathArg]);
     return;
   }
 
-  const dir = Path.resolve(pathArg);
+  const dir = pathArg ? Path.resolve(pathArg) : Path.resolve(".");
 
   if (!dir) {
     println(`ls: cannot access '${pathArg}': No such file or directory`);
@@ -485,6 +491,10 @@ function echo(args) {
 }
 
 function alias(args) {
+  if (!args[0]) {
+    println('sh: alias: missing argument');
+    return;
+  }
   const [alias, command] = args[0].split("=");
 
   if (!alias || !command) {
@@ -506,7 +516,10 @@ function concatenate(args) {
   const file = Path.resolve(filePath);
 
   if (typeof file === "string") {
-    println(file, true);
+    const lines = file.split('\n');
+    for (const line of lines) {
+      println(line, true);
+    }
     return;
   }
 
@@ -607,6 +620,10 @@ function popd() {
 }
 
 function exportFn(args) {
+  if (!args[0]) {
+    println('export: missing argument');
+    return;
+  }
   const [envVar, value] = args[0].split("=");
   state.env[envVar] = value;
 }
@@ -682,6 +699,7 @@ class Path {
   }
 
   static outOfBounds(_path = "") {
+    if (!_path) return false;
     const path = Path.absolute(_path);
     return path.startsWith("/") && !path.startsWith("/home/guest");
   }
@@ -704,7 +722,7 @@ async function sleep(_ms) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
-const scipts = {
+const scripts = {
   welcome,
 };
 
@@ -722,7 +740,7 @@ async function welcome() {
   createNewLine();
 }
 
-scipts.welcome();
+scripts.welcome();
 
 const CONSTANTS = {
   HELP: `GNU bash, version 5.1.16(1)-release (x86_64-pc-linux-gnu)
@@ -772,3 +790,162 @@ A star (*) next to a name means that the command is disabled.
  hash [-lr] [-p pathname] [-dt] [name ...]         while COMMANDS; do COMMANDS; done
  help [-dms] [pattern ...]                         { COMMANDS ; }`,
 };
+
+const windowEl = document.getElementById('window');
+const headerEl = document.getElementById('window-header');
+const btnClose = document.getElementById('btn-close');
+const btnMinimize = document.getElementById('btn-minimize');
+const btnMaximize = document.getElementById('btn-maximize');
+
+let isDragging = false;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+let isResizing = false;
+let resizeDirection = '';
+let resizeStartX = 0;
+let resizeStartY = 0;
+let resizeStartWidth = 0;
+let resizeStartHeight = 0;
+let resizeStartLeft = 0;
+let resizeStartTop = 0;
+
+headerEl.addEventListener('mousedown', (e) => {
+  if (e.target.closest('.header-control')) return;
+  
+  if (e.detail === 2) {
+    btnMaximize.click();
+    return;
+  }
+  
+  const wasMaximized = windowEl.classList.contains('maximized');
+  
+  isDragging = true;
+  
+  if (wasMaximized) {
+    // First restore the window to get its natural size
+    windowEl.classList.remove('maximized');
+    windowEl.style.width = '';
+    windowEl.style.height = '';
+    windowEl.style.transform = 'none';
+    windowEl.style.left = '';
+    windowEl.style.top = '';
+    
+    // Force reflow to get the actual restored dimensions
+    const restoredWidth = windowEl.offsetWidth;
+    
+    // Position window so cursor is centered on title bar
+    windowEl.style.left = (e.clientX - restoredWidth / 2) + 'px';
+    windowEl.style.top = (e.clientY - 16) + 'px'; // 16px is roughly header center
+    
+    dragOffsetX = restoredWidth / 2;
+    dragOffsetY = 16;
+  } else {
+    const rect = windowEl.getBoundingClientRect();
+    windowEl.style.transform = 'none';
+    windowEl.style.left = rect.left + 'px';
+    windowEl.style.top = rect.top + 'px';
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+  }
+  
+  windowEl.style.transition = 'none';
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (isDragging) {
+    if (!windowEl.classList.contains('maximized')) {
+      windowEl.style.left = (e.clientX - dragOffsetX) + 'px';
+      windowEl.style.top = (e.clientY - dragOffsetY) + 'px';
+    }
+  }
+  
+  if (isResizing) {
+    handleResize(e);
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+  isResizing = false;
+  resizeDirection = '';
+  windowEl.style.transition = '';
+});
+
+document.querySelectorAll('.resize-handle').forEach(handle => {
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizing = true;
+    resizeDirection = handle.className.split(' ').find(c => c.startsWith('resize-') && c !== 'resize-handle').replace('resize-', '');
+    const rect = windowEl.getBoundingClientRect();
+    windowEl.style.transform = 'none';
+    windowEl.style.left = rect.left + 'px';
+    windowEl.style.top = rect.top + 'px';
+    resizeStartX = e.clientX;
+    resizeStartY = e.clientY;
+    resizeStartWidth = rect.width;
+    resizeStartHeight = rect.height;
+    resizeStartLeft = rect.left;
+    resizeStartTop = rect.top;
+    windowEl.style.transition = 'none';
+  });
+});
+
+function handleResize(e) {
+  const dx = e.clientX - resizeStartX;
+  const dy = e.clientY - resizeStartY;
+  
+  const minWidth = 400;
+  const minHeight = 300;
+  
+  if (resizeDirection === 'e' || resizeDirection === 'ne' || resizeDirection === 'se') {
+    const newWidth = Math.max(minWidth, resizeStartWidth + dx);
+    windowEl.style.width = newWidth + 'px';
+  }
+  
+  if (resizeDirection === 'w' || resizeDirection === 'nw' || resizeDirection === 'sw') {
+    const newWidth = Math.max(minWidth, resizeStartWidth - dx);
+    windowEl.style.width = newWidth + 'px';
+    windowEl.style.left = (resizeStartLeft + dx) + 'px';
+  }
+  
+  if (resizeDirection === 's' || resizeDirection === 'se' || resizeDirection === 'sw') {
+    const newHeight = Math.max(minHeight, resizeStartHeight + dy);
+    windowEl.style.height = newHeight + 'px';
+  }
+  
+  if (resizeDirection === 'n' || resizeDirection === 'ne' || resizeDirection === 'nw') {
+    const newHeight = Math.max(minHeight, resizeStartHeight - dy);
+    windowEl.style.height = newHeight + 'px';
+    windowEl.style.top = (resizeStartTop + dy) + 'px';
+  }
+}
+
+btnClose.addEventListener('click', () => {
+  println('This is a website, not an app. Close the tab to leave!');
+});
+
+btnMinimize.addEventListener('click', () => {
+  windowEl.classList.add('minimized');
+  setTimeout(() => {
+    windowEl.classList.remove('minimized');
+  }, 100);
+});
+
+btnMaximize.addEventListener('click', () => {
+  windowEl.classList.toggle('maximized');
+  if (windowEl.classList.contains('maximized')) {
+    windowEl.style.left = '0';
+    windowEl.style.top = '0';
+    windowEl.style.transform = 'none';
+    windowEl.style.width = '100vw';
+    windowEl.style.height = '100dvh';
+  } else {
+    windowEl.style.width = '';
+    windowEl.style.height = '';
+    windowEl.style.transform = 'translate(-50%, -50%)';
+    windowEl.style.left = '50%';
+    windowEl.style.top = '50%';
+  }
+});
