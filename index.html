@@ -23,6 +23,16 @@
           </div>
           <span class="shortcut-label">Terminal</span>
         </div>
+        <div class="shortcut" id="browser-shortcut">
+          <div class="shortcut-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48">
+              <circle cx="12" cy="12" r="10" fill="rgba(0,0,0,0.7)" stroke="white" stroke-width="1.5"/>
+              <ellipse cx="12" cy="12" rx="4" ry="10" fill="none" stroke="white" stroke-width="1"/>
+              <line x1="2" y1="12" x2="22" y2="12" stroke="white" stroke-width="1"/>
+            </svg>
+          </div>
+          <span class="shortcut-label">Browser</span>
+        </div>
       </div>
 
       <div class="window-frame" id="window">
@@ -56,6 +66,48 @@
             <span class="terminal-leader">guest@rossdonohoe.dev:~$</span><span class="terminal-input"><span class="caret"></span></span>
           </div>
         </main>
+
+        <div class="resize-handle resize-n"></div>
+        <div class="resize-handle resize-e"></div>
+        <div class="resize-handle resize-s"></div>
+        <div class="resize-handle resize-w"></div>
+        <div class="resize-handle resize-ne"></div>
+        <div class="resize-handle resize-nw"></div>
+        <div class="resize-handle resize-se"></div>
+        <div class="resize-handle resize-sw"></div>
+      </div>
+
+      <div class="window-frame browser-window" id="browser-window">
+        <header class="window-header" id="browser-header">
+          <div class="header-controls">
+            <button class="header-control close" id="browser-btn-close">
+              <svg class="control-icon" viewBox="0 0 12 12">
+                <path d="M3 3 L9 9 M9 3 L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <button class="header-control minimize" id="browser-btn-minimize">
+              <svg class="control-icon" viewBox="0 0 12 12">
+                <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
+              </svg>
+            </button>
+            <button class="header-control fullscreen" id="browser-btn-maximize">
+              <svg class="control-icon" viewBox="0 0 12 12">
+                <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
+                <rect x="5.5" y="2.5" width="1.5" height="7" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="browser-address-bar">
+            <input type="text" class="address-input" id="browser-address" placeholder="Enter URL..." value="google.com/maps/embed" />
+          </div>
+
+          <div></div>
+        </header>
+
+        <div class="browser-content">
+          <iframe id="browser-frame" src="https://www.google.com/maps/embed" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+        </div>
 
         <div class="resize-handle resize-n"></div>
         <div class="resize-handle resize-e"></div>

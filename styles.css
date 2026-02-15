@@ -3,6 +3,7 @@ html {
   font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas,
     "DejaVu Sans Mono", monospace;
   font-weight: normal;
+  font-variant-ligatures: none;
   overflow: hidden;
 }
 
@@ -234,7 +235,10 @@ a:visited:hover {
   display: block;
   font-size: 1rem;
   flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 0;
   word-break: break-all;
+  overflow: visible;
 }
 
 .terminal-input span {
@@ -243,11 +247,13 @@ a:visited:hover {
 
 .terminal-input .caret {
   display: inline-block;
-  width: 1ch;
+  width: 0.6em;
+  min-width: 8px;
   height: 1.2rem;
-  vertical-align: text-bottom;
+  vertical-align: bottom;
   animation: blink 1s infinite;
   animation-timing-function: steps(1);
+  margin-left: -1px;
 }
 
 
@@ -264,10 +270,12 @@ a:visited:hover {
 
 .caret {
   display: inline-block;
-  width: 1ch;
+  width: 0.6em;
+  min-width: 8px;
   height: 1rem;
   animation: blink 1s infinite;
   animation-timing-function: steps(1);
+  margin-left: -1px;
 }
 
 .resize-handle {
@@ -337,4 +345,82 @@ a:visited:hover {
   width: 15px;
   height: 15px;
   cursor: sw-resize;
+}
+
+/* Browser Window Styles */
+.browser-window {
+  width: 800px;
+  height: 600px;
+  left: 100px;
+  top: 50px;
+  transform: none;
+  display: none;
+  z-index: 100;
+  flex-direction: column;
+}
+
+.browser-window.active {
+  display: flex;
+}
+
+.browser-window.minimized {
+  display: none;
+}
+
+.browser-window.maximized {
+  width: 100vw !important;
+  height: 100dvh !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+}
+
+.browser-window.maximized .browser-content {
+  flex: 1;
+}
+
+.browser-address-bar {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  max-width: 500px;
+  margin: 0 1rem;
+}
+
+.address-input {
+  width: 100%;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: #a9b1d6;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.address-input:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.address-input::placeholder {
+  color: rgba(169, 177, 214, 0.5);
+}
+
+.browser-content {
+  flex: 1;
+  width: 100%;
+  background-color: #1a1b26;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+}
+
+.browser-content iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background-color: white;
+  display: block;
 }

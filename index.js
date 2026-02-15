@@ -8,6 +8,12 @@ const state = {
   histPtr: null,
 };
 
+// Focus state - tracks which window is focused
+const focusState = {
+  terminalFocused: true,
+  browserFocused: false,
+};
+
 const githubCache = {
   repos: null,
   contents: {},
@@ -157,6 +163,12 @@ I will come back and implement a vim emulator one day, I swear...`,
 };
 
 addEventListener("keypress", function (e) {
+  // Only handle terminal input when terminal is focused
+  if (!focusState.terminalFocused) return;
+
+  // Don't handle if user is typing in an input field
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
   if (e.key.length === 1) {
     e.preventDefault();
     inputChar(e.key);
@@ -164,6 +176,12 @@ addEventListener("keypress", function (e) {
 });
 
 addEventListener("keydown", async function (e) {
+  // Only handle terminal input when terminal is focused
+  if (!focusState.terminalFocused) return;
+
+  // Don't handle if user is typing in an input field (like browser address bar)
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
   if (e.key === "Enter") {
     e.preventDefault();
     await handleCommand();
@@ -457,6 +475,7 @@ const handlers = {
   vi: permissionDenied("vi"),
   vim: permissionDenied("vim"),
   wget: permissionDenied("wget"),
+  browser: browserCommand,
 };
 
 const HTML_SPACE_CHAR = " ";
@@ -503,12 +522,18 @@ function fastfetch() {
 async function handleCommand() {
   const commands = document.querySelectorAll(".terminal-input");
   // Replace non-breaking spaces with regular spaces
-  const command = commands[commands.length - 1].textContent
+  const commandLine = commands[commands.length - 1].textContent
     .trim()
     .replace(/\u00A0/g, " ");
-  if (command.length > 0) {
-    await cmd(command);
-    state.hist.push(command);
+  if (commandLine.length > 0) {
+    // Split by && operator and execute commands sequentially
+    const commandsToRun = commandLine.split(/\s*&&\s*/);
+    for (const command of commandsToRun) {
+      if (command.trim().length > 0) {
+        await cmd(command.trim());
+      }
+    }
+    state.hist.push(commandLine);
   }
 }
 
@@ -1012,21 +1037,34 @@ async function sleep(_ms) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
+// Detect if we're in an iframe (recursion detection)
+const isInIframe = window.self !== window.top;
+
 const scripts = {
   welcome,
 };
 
 async function welcome() {
-  await simulateTyping("fastfetch");
+  if (isInIframe) {
+    // Recursion easter egg - we're viewing the site inside itself!
+    println("🌀 So you like recursion, eh?");
+    println("Welcome to rossdonohoe.dev²");
+    println("");
+    await sleep(400);
+  }
+  
+  await simulateTyping("clear && fastfetch");
   await sleep();
-  handleCommand();
+  await handleCommand();
+  await sleep(50);
   createNewLine();
 
   await sleep(400);
 
   await simulateTyping("ls -l");
   await sleep();
-  handleCommand();
+  await handleCommand();
+  await sleep(50);
   createNewLine();
 }
 
@@ -1100,8 +1138,20 @@ let resizeStartHeight = 0;
 let resizeStartLeft = 0;
 let resizeStartTop = 0;
 
+// Bring terminal window to front when clicking anywhere on it
+windowEl.addEventListener("mousedown", () => {
+  windowEl.style.zIndex = "200";
+  browserWindowEl.style.zIndex = "100";
+  focusState.terminalFocused = true;
+  focusState.browserFocused = false;
+});
+
+// Bring terminal window to front when clicking on header
 headerEl.addEventListener("mousedown", (e) => {
   if (e.target.closest(".header-control")) return;
+
+  windowEl.style.zIndex = "200";
+  browserWindowEl.style.zIndex = "100";
 
   if (e.detail === 2) {
     btnMaximize.click();
@@ -1143,6 +1193,7 @@ headerEl.addEventListener("mousedown", (e) => {
 });
 
 document.addEventListener("mousemove", (e) => {
+  // Terminal drag
   if (isDragging) {
     if (!windowEl.classList.contains("maximized")) {
       windowEl.style.left = e.clientX - dragOffsetX + "px";
@@ -1150,8 +1201,22 @@ document.addEventListener("mousemove", (e) => {
     }
   }
 
+  // Browser drag
+  if (browserIsDragging) {
+    if (!browserWindowEl.classList.contains("maximized")) {
+      browserWindowEl.style.left = e.clientX - browserDragOffsetX + "px";
+      browserWindowEl.style.top = e.clientY - browserDragOffsetY + "px";
+    }
+  }
+
+  // Terminal resize
   if (isResizing) {
     handleResize(e);
+  }
+
+  // Browser resize
+  if (browserIsResizing) {
+    handleBrowserResize(e);
   }
 });
 
@@ -1160,9 +1225,13 @@ document.addEventListener("mouseup", () => {
   isResizing = false;
   resizeDirection = "";
   windowEl.style.transition = "";
+  browserIsDragging = false;
+  browserIsResizing = false;
+  browserResizeDirection = "";
+  browserWindowEl.style.transition = "";
 });
 
-document.querySelectorAll(".resize-handle").forEach((handle) => {
+windowEl.querySelectorAll(".resize-handle").forEach((handle) => {
   handle.addEventListener("mousedown", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1246,10 +1315,8 @@ terminalShortcut.addEventListener("click", (e) => {
 terminalShortcut.addEventListener("dblclick", (e) => {
   e.stopPropagation();
   windowEl.classList.remove("closed");
-});
-
-desktop.addEventListener("click", () => {
-  terminalShortcut.classList.remove("selected");
+  focusState.terminalFocused = true;
+  focusState.browserFocused = false;
 });
 
 btnMinimize.addEventListener("click", () => {
@@ -1275,3 +1342,243 @@ btnMaximize.addEventListener("click", () => {
     windowEl.style.top = "50%";
   }
 });
+
+// Browser Window Management
+const browserWindowEl = document.getElementById("browser-window");
+const browserHeaderEl = document.getElementById("browser-header");
+const browserAddressInput = document.getElementById("browser-address");
+const browserFrame = document.getElementById("browser-frame");
+const browserBtnClose = document.getElementById("browser-btn-close");
+const browserBtnMinimize = document.getElementById("browser-btn-minimize");
+const browserBtnMaximize = document.getElementById("browser-btn-maximize");
+const browserShortcut = document.getElementById("browser-shortcut");
+
+let browserIsDragging = false;
+let browserDragOffsetX = 0;
+let browserDragOffsetY = 0;
+let browserIsResizing = false;
+let browserResizeDirection = "";
+let browserResizeStartX = 0;
+let browserResizeStartY = 0;
+let browserResizeStartWidth = 0;
+let browserResizeStartHeight = 0;
+let browserResizeStartLeft = 0;
+let browserResizeStartTop = 0;
+
+// Bring browser window to front when clicking anywhere on it
+browserWindowEl.addEventListener("mousedown", () => {
+  browserWindowEl.style.zIndex = "200";
+  windowEl.style.zIndex = "100";
+  focusState.terminalFocused = false;
+  focusState.browserFocused = true;
+});
+
+// Browser window drag
+browserHeaderEl.addEventListener("mousedown", (e) => {
+  if (e.target.closest(".header-control") || e.target.closest(".browser-address-bar")) return;
+
+  // Bring to front when dragging
+  browserWindowEl.style.zIndex = "200";
+  windowEl.style.zIndex = "100";
+
+  if (e.detail === 2) {
+    browserBtnMaximize.click();
+    return;
+  }
+
+  const wasMaximized = browserWindowEl.classList.contains("maximized");
+  browserIsDragging = true;
+
+  if (wasMaximized) {
+    browserWindowEl.classList.remove("maximized");
+    browserWindowEl.style.width = "";
+    browserWindowEl.style.height = "";
+    browserWindowEl.style.transform = "none";
+    browserWindowEl.style.left = "";
+    browserWindowEl.style.top = "";
+
+    const restoredWidth = browserWindowEl.offsetWidth;
+    browserWindowEl.style.left = e.clientX - restoredWidth / 2 + "px";
+    browserWindowEl.style.top = e.clientY - 16 + "px";
+
+    browserDragOffsetX = restoredWidth / 2;
+    browserDragOffsetY = 16;
+  } else {
+    const rect = browserWindowEl.getBoundingClientRect();
+    browserWindowEl.style.transform = "none";
+    browserWindowEl.style.left = rect.left + "px";
+    browserWindowEl.style.top = rect.top + "px";
+    browserDragOffsetX = e.clientX - rect.left;
+    browserDragOffsetY = e.clientY - rect.top;
+  }
+
+  browserWindowEl.style.transition = "none";
+});
+
+// Browser window resize handles
+browserWindowEl.querySelectorAll(".resize-handle").forEach((handle) => {
+  handle.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    browserIsResizing = true;
+    browserResizeDirection = handle.className
+      .split(" ")
+      .find((c) => c.startsWith("resize-") && c !== "resize-handle")
+      .replace("resize-", "");
+    const rect = browserWindowEl.getBoundingClientRect();
+    browserWindowEl.style.transform = "none";
+    browserWindowEl.style.left = rect.left + "px";
+    browserWindowEl.style.top = rect.top + "px";
+    browserResizeStartX = e.clientX;
+    browserResizeStartY = e.clientY;
+    browserResizeStartWidth = rect.width;
+    browserResizeStartHeight = rect.height;
+    browserResizeStartLeft = rect.left;
+    browserResizeStartTop = rect.top;
+    browserWindowEl.style.transition = "none";
+  });
+});
+
+// Handle browser drag and resize in the main mousemove/mouseup listeners
+document.addEventListener("mousemove", (e) => {
+  if (browserIsDragging) {
+    if (!browserWindowEl.classList.contains("maximized")) {
+      browserWindowEl.style.left = e.clientX - browserDragOffsetX + "px";
+      browserWindowEl.style.top = e.clientY - browserDragOffsetY + "px";
+    }
+  }
+
+  if (browserIsResizing) {
+    handleBrowserResize(e);
+  }
+});
+
+function handleBrowserResize(e) {
+  const dx = e.clientX - browserResizeStartX;
+  const dy = e.clientY - browserResizeStartY;
+  const minWidth = 400;
+  const minHeight = 300;
+
+  if (browserResizeDirection === "e" || browserResizeDirection === "ne" || browserResizeDirection === "se") {
+    const newWidth = Math.max(minWidth, browserResizeStartWidth + dx);
+    browserWindowEl.style.width = newWidth + "px";
+  }
+
+  if (browserResizeDirection === "w" || browserResizeDirection === "nw" || browserResizeDirection === "sw") {
+    const newWidth = Math.max(minWidth, browserResizeStartWidth - dx);
+    browserWindowEl.style.width = newWidth + "px";
+    browserWindowEl.style.left = browserResizeStartLeft + dx + "px";
+  }
+
+  if (browserResizeDirection === "s" || browserResizeDirection === "se" || browserResizeDirection === "sw") {
+    const newHeight = Math.max(minHeight, browserResizeStartHeight + dy);
+    browserWindowEl.style.height = newHeight + "px";
+  }
+
+  if (browserResizeDirection === "n" || browserResizeDirection === "ne" || browserResizeDirection === "nw") {
+    const newHeight = Math.max(minHeight, browserResizeStartHeight - dy);
+    browserWindowEl.style.height = newHeight + "px";
+    browserWindowEl.style.top = browserResizeStartTop + dy + "px";
+  }
+}
+
+// Browser control buttons
+browserBtnClose.addEventListener("click", () => {
+  browserWindowEl.classList.remove("active");
+});
+
+browserBtnMinimize.addEventListener("click", () => {
+  browserWindowEl.classList.add("minimized");
+  setTimeout(() => {
+    browserWindowEl.classList.remove("minimized");
+  }, 100);
+});
+
+browserBtnMaximize.addEventListener("click", () => {
+  browserWindowEl.classList.toggle("maximized");
+  if (browserWindowEl.classList.contains("maximized")) {
+    browserWindowEl.style.left = "0";
+    browserWindowEl.style.top = "0";
+    browserWindowEl.style.transform = "none";
+    browserWindowEl.style.width = "100vw";
+    browserWindowEl.style.height = "100dvh";
+  } else {
+    browserWindowEl.style.width = "";
+    browserWindowEl.style.height = "";
+    browserWindowEl.style.transform = "none";
+    browserWindowEl.style.left = "100px";
+    browserWindowEl.style.top = "50px";
+  }
+});
+
+// Address bar navigation
+browserAddressInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    let url = browserAddressInput.value.trim();
+    if (url) {
+      // Auto-prefix https:// if no protocol specified
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://" + url;
+      }
+      browserFrame.src = url;
+    }
+  }
+});
+
+// Desktop click handler - deselect all shortcuts
+desktop.addEventListener("click", () => {
+  terminalShortcut.classList.remove("selected");
+  browserShortcut.classList.remove("selected");
+});
+
+// Browser shortcut
+browserShortcut.addEventListener("click", (e) => {
+  e.stopPropagation();
+  terminalShortcut.classList.remove("selected");
+  browserShortcut.classList.add("selected");
+});
+
+browserShortcut.addEventListener("dblclick", (e) => {
+  e.stopPropagation();
+  browserWindowEl.classList.add("active");
+  // Focus the window by bringing it to front
+  browserWindowEl.style.zIndex = "200";
+  windowEl.style.zIndex = "100";
+  focusState.terminalFocused = false;
+  focusState.browserFocused = true;
+  // Ensure address bar has the default URL
+  browserAddressInput.value = "google.com/maps/embed";
+  browserFrame.src = "https://www.google.com/maps/embed";
+  // Focus the address bar for immediate typing
+  setTimeout(() => browserAddressInput.focus(), 100);
+});
+
+// Update mouseup listener to handle browser drag/resize
+const originalMouseUp = document.onmouseup;
+document.addEventListener("mouseup", () => {
+  browserIsDragging = false;
+  browserIsResizing = false;
+  browserResizeDirection = "";
+  browserWindowEl.style.transition = "";
+});
+
+// Browser terminal command
+function browserCommand(args) {
+  const url = args[0];
+  browserWindowEl.classList.add("active");
+  browserWindowEl.style.zIndex = "200";
+  windowEl.style.zIndex = "100";
+  focusState.terminalFocused = false;
+  focusState.browserFocused = true;
+  if (url) {
+    let fullUrl = url;
+    if (!fullUrl.startsWith("http://") && !fullUrl.startsWith("https://")) {
+      fullUrl = "https://" + fullUrl;
+    }
+    browserAddressInput.value = fullUrl;
+    browserFrame.src = fullUrl;
+  }
+  // Focus the address bar for immediate typing
+  browserAddressInput.focus();
+}
