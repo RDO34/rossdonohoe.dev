@@ -1054,9 +1054,16 @@ async function welcome() {
   if (isInIframe) {
     // Recursion easter egg - we're viewing the site inside itself!
     await sleep(400);
-    println("🌀 So you like recursion, eh?");
-    println("Welcome to rossdonohoe.dev²");
-    println("");
+    await simulateTyping('echo "🌀 So you like recursion, eh?"');
+    await sleep();
+    await handleCommand();
+    await sleep(50);
+    createNewLine();
+    await simulateTyping('echo "Welcome to rossdonohoe.dev²"');
+    await sleep();
+    await handleCommand();
+    await sleep(50);
+    createNewLine();
     await sleep(400);
   }
 
