@@ -2,10 +2,129 @@ const state = {
   path: "~",
   env: {},
   date: new Date(),
+  startTime: Date.now(),
   dirs: ["/home/guest"],
   hist: [],
   histPtr: null,
 };
+
+const githubCache = {
+  repos: null,
+  contents: {},
+  lastFetch: null,
+};
+
+async function fetchGitHubRepos() {
+  if (
+    githubCache.repos &&
+    githubCache.lastFetch &&
+    Date.now() - githubCache.lastFetch < 300000
+  ) {
+    return githubCache.repos;
+  }
+
+  try {
+    const response = await fetch(
+      "https://api.github.com/users/RDO34/repos?sort=updated&per_page=100",
+    );
+    if (!response.ok) throw new Error("Failed to fetch");
+    const repos = await response.json();
+    githubCache.repos = repos;
+    githubCache.lastFetch = Date.now();
+    return repos;
+  } catch (e) {
+    return [];
+  }
+}
+
+async function fetchGitHubContents(repo, path = "") {
+  const cacheKey = `${repo}:${path}`;
+  if (
+    githubCache.contents[cacheKey] &&
+    Date.now() - githubCache.contents[cacheKey].timestamp < 300000
+  ) {
+    return githubCache.contents[cacheKey].data;
+  }
+
+  try {
+    const url = `https://api.github.com/repos/RDO34/${repo}/contents/${path}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to fetch");
+    const data = await response.json();
+    githubCache.contents[cacheKey] = { data, timestamp: Date.now() };
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function fetchGitHubFile(repo, path) {
+  try {
+    const url = `https://api.github.com/repos/RDO34/${repo}/contents/${path}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to fetch");
+    const data = await response.json();
+    if (data.content) {
+      // Decode base64 content
+      return atob(data.content.replace(/\s/g, ""));
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function isGitHubPath(absolutePath) {
+  return (
+    absolutePath.startsWith("/home/guest/projects/") &&
+    absolutePath.split("/").length > 3
+  );
+}
+
+function parseGitHubPath(absolutePath) {
+  const parts = absolutePath.split("/").filter(Boolean);
+  // parts = ['home', 'guest', 'projects', 'repo-name', ...path]
+  const repo = parts[3];
+  const path = parts.slice(4).join("/");
+  return { repo, path };
+}
+
+async function getProjectsDir() {
+  const repos = await fetchGitHubRepos();
+  const projects = {
+    "README.md":
+      "# Projects\n\nThis directory contains my GitHub repositories.\n\nUse 'ls' to see all projects, then 'cd' into any project to explore it.\n\nEach project shows actual files from GitHub!",
+  };
+
+  for (const repo of repos) {
+    projects[repo.name] = {};
+  }
+
+  return projects;
+}
+
+async function getGitHubDirContents(absolutePath) {
+  const { repo, path } = parseGitHubPath(absolutePath);
+  const contents = await fetchGitHubContents(repo, path);
+
+  if (!contents) return null;
+  if (!Array.isArray(contents)) return null; // It's a file, not a directory
+
+  const result = {};
+  for (const item of contents) {
+    if (item.type === "dir") {
+      result[item.name] = {};
+    } else {
+      result[item.name] = item;
+    }
+  }
+  return result;
+}
+
+async function getGitHubFileContent(absolutePath) {
+  const { repo, path } = parseGitHubPath(absolutePath);
+  return await fetchGitHubFile(repo, path);
+}
 
 const dirMap = {
   home: {
@@ -22,12 +141,16 @@ You got me.
 
 If you're trying to do some cool grep-pipe-xargs wizardry it won't work.
 
-This was just a fun way to present some information in a way that shows what I enjoy.
+This has just been a fun way to present some information in a way that shows what I enjoy.
 
 I will come back and implement a vim emulator one day, I swear...`,
       "links.txt": `[github](https://github.com/rdo34)&nbsp;|&nbsp;[linkedin](https://linkedin.com/in/ross-james-donohoe)`,
       blog: {
         "placeholder.txt": "Pfft, I don't have a blog",
+      },
+      projects: {
+        "README.md":
+          "# Projects\n\nThis directory contains my GitHub repositories.\n\nUse 'ls' to see all projects, then 'cd' into any project to explore it.",
       },
     },
   },
@@ -40,10 +163,10 @@ addEventListener("keypress", function (e) {
   }
 });
 
-addEventListener("keydown", function (e) {
+addEventListener("keydown", async function (e) {
   if (e.key === "Enter") {
     e.preventDefault();
-    handleCommand();
+    await handleCommand();
     createNewLine();
   }
 
@@ -176,8 +299,8 @@ function createInputLine(text) {
 
 function createNewLine() {
   state.histPtr = null;
-  const newLine = document.createElement("span");
-  newLine.classList.add("terminal-line");
+  const newLine = document.createElement("div");
+  newLine.classList.add("terminal-line", "terminal-prompt");
 
   const leader = document.createElement("span");
   leader.innerHTML = makeLeaderText();
@@ -224,7 +347,7 @@ function makeLeaderText() {
 }
 
 function println(text, parseLinks = false) {
-  const newLine = document.createElement("span");
+  const newLine = document.createElement("div");
   newLine.classList.add("terminal-line");
 
   let innerHTML = text;
@@ -239,7 +362,7 @@ function println(text, parseLinks = false) {
 
         innerHTML = innerHTML.replace(
           element,
-          `<a href="${url}" target="_blank">${label}</a>`
+          `<a href="${url}" target="_blank">${label}</a>`,
         );
       }
     }
@@ -321,10 +444,12 @@ const handlers = {
   apt: permissionDenied("apt"),
   "apt-get": permissionDenied("apt-get"),
   curl: permissionDenied("curl"),
+  fastfetch: fastfetch,
   ls: list,
   mkdir: makeDirectory,
   mv: permissionDenied("mv"),
   nano: permissionDenied("nano"),
+  node: node,
   rm: permissionDenied("rm"),
   su: permissionDenied("su"),
   sudo: permissionDenied("sudo"),
@@ -334,22 +459,64 @@ const handlers = {
   wget: permissionDenied("wget"),
 };
 
-const HTML_SPACE_CHAR = " ";
+const HTML_SPACE_CHAR = " ";
 
-function handleCommand() {
+function fastfetch() {
+  const logo = [
+    `<span style="color: #bb9af7">____/\\\\\\\\\\\\\\\\\\_____         </span>`,
+    `<span style="color: #b39bf7"> __/\\\\\\///////\\\\\\___        </span>`,
+    `<span style="color: #ab9cf7">  _\\/\\\\\\_____\\/\\\\\\___       </span>`,
+    `<span style="color: #a39df7">   _\\/\\\\\\\\\\\\\\\\\\\\\\/____      </span>`,
+    `<span style="color: #9a9ef7">    _\\/\\\\\\//////\\\\\\____     </span>`,
+    `<span style="color: #929ff7">     _\\/\\\\\\____\\//\\\\\\___    </span>`,
+    `<span style="color: #8aa0f7">      _\\/\\\\\\_____\\//\\\\\\__   </span>`,
+    `<span style="color: #82a1f7">       _\\/\\\\\\______\\//\\\\\\_  </span>`,
+    `<span style="color: #7aa2f7">        _\\///________\\///__ </span>`,
+  ];
+
+  const uptime = Math.floor((Date.now() - state.startTime) / 1000);
+  const minutes = Math.floor(uptime / 60);
+  const seconds = uptime % 60;
+  const uptimeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
+  const info = [
+    `<span style="color: #7aa2f7; font-weight: bold">guest</span>@<span style="color: #7aa2f7; font-weight: bold">rossdonohoe.dev</span>`,
+    "-----------------------",
+    `<span style="color: #7aa2f7">OS:</span> rOS 1.0`,
+    `<span style="color: #7aa2f7">Kernel:</span> Vanilla JS`,
+    `<span style="color: #7aa2f7">Uptime:</span> ${uptimeStr}`,
+    `<span style="color: #7aa2f7">Shell:</span> custom-sh`,
+    `<span style="color: #7aa2f7">Resolution:</span> ${window.innerWidth}x${window.innerHeight}`,
+    `<span style="color: #7aa2f7">Memory:</span> 128MB / 512MB`,
+    `<span style="background-color: #f7768e">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #9ece6a">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #e0af68">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #7aa2f7">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #bb9af7">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #7dcfff">&nbsp;&nbsp;&nbsp;</span>`,
+  ];
+
+  const maxLines = Math.max(logo.length, info.length);
+  for (let i = 0; i < maxLines; i++) {
+    const logoLine = logo[i] || " ".repeat(27);
+    const infoLine = info[i] || "";
+    const padding = "   ";
+    println(logoLine + padding + infoLine, false);
+  }
+}
+
+async function handleCommand() {
   const commands = document.querySelectorAll(".terminal-input");
-  const command = commands[commands.length - 1].textContent.trim();
+  // Replace non-breaking spaces with regular spaces
+  const command = commands[commands.length - 1].textContent
+    .trim()
+    .replace(/\u00A0/g, " ");
   if (command.length > 0) {
-    cmd(command);
+    await cmd(command);
     state.hist.push(command);
   }
 }
 
-function cmd(command) {
+async function cmd(command) {
   const [baseCommand, ...args] = command.split(HTML_SPACE_CHAR);
 
   if (handlers[baseCommand]) {
-    handlers[baseCommand](args);
+    await handlers[baseCommand](args);
   } else {
     insertCommandNotFound(baseCommand);
   }
@@ -380,7 +547,7 @@ function clear() {
   terminal.innerHTML = "";
 }
 
-function list(args) {
+async function list(args) {
   const pathArg = args.find((arg) => !arg.startsWith("-"));
 
   if (pathArg && Path.outOfBounds(pathArg)) {
@@ -388,7 +555,44 @@ function list(args) {
     return;
   }
 
-  const dir = pathArg ? Path.resolve(pathArg) : Path.resolve(".");
+  const targetPath = pathArg || ".";
+  const absolutePath = Path.absolute(targetPath);
+
+  // Check if we're listing a GitHub project directory
+  let dir;
+  if (absolutePath === "/home/guest/projects") {
+    // Just the projects folder - show repo list
+    const projectsDir = await getProjectsDir();
+    dirMap.home.guest.projects = projectsDir;
+    dir = Path.resolve(targetPath);
+  } else if (isGitHubPath(absolutePath)) {
+    // Inside a specific project - fetch from GitHub
+    const githubContents = await getGitHubDirContents(absolutePath);
+    if (githubContents) {
+      // Update dirMap with the fetched contents
+      const { repo, path: ghPath } = parseGitHubPath(absolutePath);
+      let current = dirMap.home.guest.projects;
+      if (!current[repo]) current[repo] = {};
+      current = current[repo];
+
+      // Navigate to the correct subdirectory in dirMap
+      if (ghPath) {
+        const pathParts = ghPath.split("/");
+        for (const part of pathParts) {
+          if (!current[part]) current[part] = {};
+          current = current[part];
+        }
+      }
+
+      // Merge GitHub contents
+      Object.assign(current, githubContents);
+      dir = current;
+    } else {
+      dir = Path.resolve(targetPath);
+    }
+  } else {
+    dir = Path.resolve(targetPath);
+  }
 
   if (!dir) {
     println(`ls: cannot access '${pathArg}': No such file or directory`);
@@ -398,7 +602,7 @@ function list(args) {
   let entries = [".", "..", ...Object.keys(dir)];
 
   const includeHidden = args.some(
-    (arg) => arg.startsWith("-") && arg.includes("a")
+    (arg) => arg.startsWith("-") && arg.includes("a"),
   );
 
   if (!includeHidden) {
@@ -406,24 +610,25 @@ function list(args) {
   }
 
   if (typeof dir === "string") {
-    entries = [pathArg.split("/").pop()];
+    entries = [(pathArg || targetPath).split("/").pop()];
   }
 
   const longFormat = args.some(
-    (arg) => arg.startsWith("-") && arg.includes("l")
+    (arg) => arg.startsWith("-") && arg.includes("l"),
   );
 
   if (longFormat) {
     const entryDetails = entries.map((entry) => {
-      const isDir = typeof dir[entry] === "object";
+      const isDir =
+        entry === "." || entry === ".." || typeof dir[entry] === "object";
       const typeAndPermissions = `${isDir ? "d" : "-"}r--r--r--`;
       const links = 1;
       const owner = "guest";
       const group = "guest";
-      const size = isDir ? 4096 : 1024;
+      const size = isDir ? 4096 : dir[entry] ? dir[entry].length || 1024 : 1024;
 
       const month = state.date.toLocaleString("default", { month: "short" });
-      const day = state.date.getDate();
+      const day = state.date.getDate().toString().padStart(2, " ");
       const time = state.date.toLocaleTimeString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
@@ -431,28 +636,34 @@ function list(args) {
 
       const date = `${month} ${day} ${time}`;
 
-      return [typeAndPermissions, links, owner, group, size, date, entry].join(
-        HTML_SPACE_CHAR
-      );
+      return [
+        typeAndPermissions,
+        links.toString().padStart(2, " "),
+        owner.padEnd(8, " "),
+        group.padEnd(8, " "),
+        size.toString().padStart(8, " "),
+        date,
+        entry,
+      ].join(" ");
     });
 
     for (const entry of entryDetails) {
-      println(entry);
+      println(entry.replace(/ /g, "&nbsp;"));
     }
 
     return;
   }
 
-  const newLine = document.createElement("span");
+  const newLine = document.createElement("div");
   newLine.classList.add("terminal-line");
   for (const entry of entries) {
     newLine.innerHTML += entry;
-    newLine.innerHTML += "&Tab;";
+    newLine.innerHTML += "&Tab;&Tab;";
   }
   document.querySelector(".terminal").appendChild(newLine);
 }
 
-function changeDirectory(args) {
+async function changeDirectory(args) {
   const newPath = args[0];
 
   if (!newPath) {
@@ -470,6 +681,34 @@ function changeDirectory(args) {
   }
 
   const newFullPath = Path.absolute(newPath);
+
+  // Check if we're accessing projects directory
+  if (newFullPath.startsWith("/home/guest/projects")) {
+    await getProjectsDir();
+  }
+
+  // Check if we're cd'ing into a GitHub project subdirectory
+  if (isGitHubPath(newFullPath)) {
+    const githubContents = await getGitHubDirContents(newFullPath);
+    if (githubContents) {
+      // Update dirMap with fetched contents
+      const { repo, path: ghPath } = parseGitHubPath(newFullPath);
+      let current = dirMap.home.guest.projects;
+      if (!current[repo]) current[repo] = {};
+      current = current[repo];
+
+      if (ghPath) {
+        const pathParts = ghPath.split("/");
+        for (const part of pathParts) {
+          if (!current[part]) current[part] = {};
+          current = current[part];
+        }
+      }
+
+      Object.assign(current, githubContents);
+    }
+  }
+
   const target = Path.resolve(newFullPath);
 
   if (typeof target !== "object") {
@@ -492,7 +731,7 @@ function echo(args) {
 
 function alias(args) {
   if (!args[0]) {
-    println('sh: alias: missing argument');
+    println("sh: alias: missing argument");
     return;
   }
   const [alias, command] = args[0].split("=");
@@ -510,13 +749,37 @@ function alias(args) {
 }
 
 // cat
-function concatenate(args) {
+async function concatenate(args) {
   const filePath = args[0];
+
+  if (!filePath) {
+    println("cat: missing file operand");
+    return;
+  }
+
+  const absolutePath = Path.absolute(filePath);
+
+  // Check if we're accessing a GitHub project file
+  if (isGitHubPath(absolutePath)) {
+    const content = await getGitHubFileContent(absolutePath);
+    if (content) {
+      const lines = content.split("\n");
+      for (const line of lines) {
+        println(line, false);
+      }
+      return;
+    }
+  }
+
+  // Check if we're accessing projects directory
+  if (absolutePath.startsWith("/home/guest/projects")) {
+    await getProjectsDir();
+  }
 
   const file = Path.resolve(filePath);
 
   if (typeof file === "string") {
-    const lines = file.split('\n');
+    const lines = file.split("\n");
     for (const line of lines) {
       println(line, true);
     }
@@ -552,7 +815,7 @@ function makeDirectory(args) {
 
   if (!parentDir) {
     println(
-      `mkdir: cannot create directory '${dirPath}': No such file or directory`
+      `mkdir: cannot create directory '${dirPath}': No such file or directory`,
     );
     return;
   }
@@ -581,12 +844,39 @@ function makeFile(args) {
 
   if (!parentDir) {
     println(
-      `touch: cannot create file '${filePath}': No such file or directory`
+      `touch: cannot create file '${filePath}': No such file or directory`,
     );
     return;
   }
 
   parentDir[fileName] = "";
+}
+
+function node(args) {
+  if (args[0] !== "-p") {
+    println("Welcome to Node.js v14.17.0.");
+    println('Type ".help" for more information.');
+    return;
+  }
+
+  let code = args.slice(1).join(" ");
+
+  // Remove surrounding quotes if present
+  if (
+    (code.startsWith('"') && code.endsWith('"')) ||
+    (code.startsWith("'") && code.endsWith("'"))
+  ) {
+    code = code.slice(1, -1);
+  }
+
+  try {
+    const result = eval(code);
+    if (result !== undefined) {
+      println(String(result));
+    }
+  } catch (e) {
+    println(e.toString());
+  }
 }
 
 function processWorkingDirectory() {
@@ -621,7 +911,7 @@ function popd() {
 
 function exportFn(args) {
   if (!args[0]) {
-    println('export: missing argument');
+    println("export: missing argument");
     return;
   }
   const [envVar, value] = args[0].split("=");
@@ -630,7 +920,7 @@ function exportFn(args) {
 
 function history(_args) {
   for (const [idx, cmd] of state.hist.entries()) {
-    const newLine = document.createElement("span");
+    const newLine = document.createElement("div");
     newLine.classList.add("terminal-line");
     newLine.innerHTML += "&nbsp;";
     newLine.innerHTML += idx + 1;
@@ -727,7 +1017,7 @@ const scripts = {
 };
 
 async function welcome() {
-  await simulateTyping("echo Welcome to rossdonohoe.dev!");
+  await simulateTyping("fastfetch");
   await sleep();
   handleCommand();
   createNewLine();
@@ -791,18 +1081,18 @@ A star (*) next to a name means that the command is disabled.
  help [-dms] [pattern ...]                         { COMMANDS ; }`,
 };
 
-const windowEl = document.getElementById('window');
-const headerEl = document.getElementById('window-header');
-const btnClose = document.getElementById('btn-close');
-const btnMinimize = document.getElementById('btn-minimize');
-const btnMaximize = document.getElementById('btn-maximize');
+const windowEl = document.getElementById("window");
+const headerEl = document.getElementById("window-header");
+const btnClose = document.getElementById("btn-close");
+const btnMinimize = document.getElementById("btn-minimize");
+const btnMaximize = document.getElementById("btn-maximize");
 
 let isDragging = false;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 
 let isResizing = false;
-let resizeDirection = '';
+let resizeDirection = "";
 let resizeStartX = 0;
 let resizeStartY = 0;
 let resizeStartWidth = 0;
@@ -810,142 +1100,178 @@ let resizeStartHeight = 0;
 let resizeStartLeft = 0;
 let resizeStartTop = 0;
 
-headerEl.addEventListener('mousedown', (e) => {
-  if (e.target.closest('.header-control')) return;
-  
+headerEl.addEventListener("mousedown", (e) => {
+  if (e.target.closest(".header-control")) return;
+
   if (e.detail === 2) {
     btnMaximize.click();
     return;
   }
-  
-  const wasMaximized = windowEl.classList.contains('maximized');
-  
+
+  const wasMaximized = windowEl.classList.contains("maximized");
+
   isDragging = true;
-  
+
   if (wasMaximized) {
     // First restore the window to get its natural size
-    windowEl.classList.remove('maximized');
-    windowEl.style.width = '';
-    windowEl.style.height = '';
-    windowEl.style.transform = 'none';
-    windowEl.style.left = '';
-    windowEl.style.top = '';
-    
+    windowEl.classList.remove("maximized");
+    windowEl.style.width = "";
+    windowEl.style.height = "";
+    windowEl.style.transform = "none";
+    windowEl.style.left = "";
+    windowEl.style.top = "";
+
     // Force reflow to get the actual restored dimensions
     const restoredWidth = windowEl.offsetWidth;
-    
+
     // Position window so cursor is centered on title bar
-    windowEl.style.left = (e.clientX - restoredWidth / 2) + 'px';
-    windowEl.style.top = (e.clientY - 16) + 'px'; // 16px is roughly header center
-    
+    windowEl.style.left = e.clientX - restoredWidth / 2 + "px";
+    windowEl.style.top = e.clientY - 16 + "px"; // 16px is roughly header center
+
     dragOffsetX = restoredWidth / 2;
     dragOffsetY = 16;
   } else {
     const rect = windowEl.getBoundingClientRect();
-    windowEl.style.transform = 'none';
-    windowEl.style.left = rect.left + 'px';
-    windowEl.style.top = rect.top + 'px';
+    windowEl.style.transform = "none";
+    windowEl.style.left = rect.left + "px";
+    windowEl.style.top = rect.top + "px";
     dragOffsetX = e.clientX - rect.left;
     dragOffsetY = e.clientY - rect.top;
   }
-  
-  windowEl.style.transition = 'none';
+
+  windowEl.style.transition = "none";
 });
 
-document.addEventListener('mousemove', (e) => {
+document.addEventListener("mousemove", (e) => {
   if (isDragging) {
-    if (!windowEl.classList.contains('maximized')) {
-      windowEl.style.left = (e.clientX - dragOffsetX) + 'px';
-      windowEl.style.top = (e.clientY - dragOffsetY) + 'px';
+    if (!windowEl.classList.contains("maximized")) {
+      windowEl.style.left = e.clientX - dragOffsetX + "px";
+      windowEl.style.top = e.clientY - dragOffsetY + "px";
     }
   }
-  
+
   if (isResizing) {
     handleResize(e);
   }
 });
 
-document.addEventListener('mouseup', () => {
+document.addEventListener("mouseup", () => {
   isDragging = false;
   isResizing = false;
-  resizeDirection = '';
-  windowEl.style.transition = '';
+  resizeDirection = "";
+  windowEl.style.transition = "";
 });
 
-document.querySelectorAll('.resize-handle').forEach(handle => {
-  handle.addEventListener('mousedown', (e) => {
+document.querySelectorAll(".resize-handle").forEach((handle) => {
+  handle.addEventListener("mousedown", (e) => {
     e.preventDefault();
     e.stopPropagation();
     isResizing = true;
-    resizeDirection = handle.className.split(' ').find(c => c.startsWith('resize-') && c !== 'resize-handle').replace('resize-', '');
+    resizeDirection = handle.className
+      .split(" ")
+      .find((c) => c.startsWith("resize-") && c !== "resize-handle")
+      .replace("resize-", "");
     const rect = windowEl.getBoundingClientRect();
-    windowEl.style.transform = 'none';
-    windowEl.style.left = rect.left + 'px';
-    windowEl.style.top = rect.top + 'px';
+    windowEl.style.transform = "none";
+    windowEl.style.left = rect.left + "px";
+    windowEl.style.top = rect.top + "px";
     resizeStartX = e.clientX;
     resizeStartY = e.clientY;
     resizeStartWidth = rect.width;
     resizeStartHeight = rect.height;
     resizeStartLeft = rect.left;
     resizeStartTop = rect.top;
-    windowEl.style.transition = 'none';
+    windowEl.style.transition = "none";
   });
 });
 
 function handleResize(e) {
   const dx = e.clientX - resizeStartX;
   const dy = e.clientY - resizeStartY;
-  
+
   const minWidth = 400;
   const minHeight = 300;
-  
-  if (resizeDirection === 'e' || resizeDirection === 'ne' || resizeDirection === 'se') {
+
+  if (
+    resizeDirection === "e" ||
+    resizeDirection === "ne" ||
+    resizeDirection === "se"
+  ) {
     const newWidth = Math.max(minWidth, resizeStartWidth + dx);
-    windowEl.style.width = newWidth + 'px';
+    windowEl.style.width = newWidth + "px";
   }
-  
-  if (resizeDirection === 'w' || resizeDirection === 'nw' || resizeDirection === 'sw') {
+
+  if (
+    resizeDirection === "w" ||
+    resizeDirection === "nw" ||
+    resizeDirection === "sw"
+  ) {
     const newWidth = Math.max(minWidth, resizeStartWidth - dx);
-    windowEl.style.width = newWidth + 'px';
-    windowEl.style.left = (resizeStartLeft + dx) + 'px';
+    windowEl.style.width = newWidth + "px";
+    windowEl.style.left = resizeStartLeft + dx + "px";
   }
-  
-  if (resizeDirection === 's' || resizeDirection === 'se' || resizeDirection === 'sw') {
+
+  if (
+    resizeDirection === "s" ||
+    resizeDirection === "se" ||
+    resizeDirection === "sw"
+  ) {
     const newHeight = Math.max(minHeight, resizeStartHeight + dy);
-    windowEl.style.height = newHeight + 'px';
+    windowEl.style.height = newHeight + "px";
   }
-  
-  if (resizeDirection === 'n' || resizeDirection === 'ne' || resizeDirection === 'nw') {
+
+  if (
+    resizeDirection === "n" ||
+    resizeDirection === "ne" ||
+    resizeDirection === "nw"
+  ) {
     const newHeight = Math.max(minHeight, resizeStartHeight - dy);
-    windowEl.style.height = newHeight + 'px';
-    windowEl.style.top = (resizeStartTop + dy) + 'px';
+    windowEl.style.height = newHeight + "px";
+    windowEl.style.top = resizeStartTop + dy + "px";
   }
 }
 
-btnClose.addEventListener('click', () => {
-  println('This is a website, not an app. Close the tab to leave!');
+btnClose.addEventListener("click", () => {
+  windowEl.classList.add("closed");
 });
 
-btnMinimize.addEventListener('click', () => {
-  windowEl.classList.add('minimized');
+const terminalShortcut = document.getElementById("terminal-shortcut");
+const desktop = document.querySelector(".desktop");
+
+terminalShortcut.addEventListener("click", (e) => {
+  e.stopPropagation();
+  terminalShortcut.classList.add("selected");
+});
+
+terminalShortcut.addEventListener("dblclick", (e) => {
+  e.stopPropagation();
+  windowEl.classList.remove("closed");
+});
+
+desktop.addEventListener("click", () => {
+  terminalShortcut.classList.remove("selected");
+});
+
+btnMinimize.addEventListener("click", () => {
+  windowEl.classList.add("minimized");
   setTimeout(() => {
-    windowEl.classList.remove('minimized');
+    windowEl.classList.remove("minimized");
   }, 100);
 });
 
-btnMaximize.addEventListener('click', () => {
-  windowEl.classList.toggle('maximized');
-  if (windowEl.classList.contains('maximized')) {
-    windowEl.style.left = '0';
-    windowEl.style.top = '0';
-    windowEl.style.transform = 'none';
-    windowEl.style.width = '100vw';
-    windowEl.style.height = '100dvh';
+btnMaximize.addEventListener("click", () => {
+  windowEl.classList.toggle("maximized");
+  if (windowEl.classList.contains("maximized")) {
+    windowEl.style.left = "0";
+    windowEl.style.top = "0";
+    windowEl.style.transform = "none";
+    windowEl.style.width = "100vw";
+    windowEl.style.height = "100dvh";
   } else {
-    windowEl.style.width = '';
-    windowEl.style.height = '';
-    windowEl.style.transform = 'translate(-50%, -50%)';
-    windowEl.style.left = '50%';
-    windowEl.style.top = '50%';
+    windowEl.style.width = "";
+    windowEl.style.height = "";
+    windowEl.style.transform = "translate(-50%, -50%)";
+    windowEl.style.left = "50%";
+    windowEl.style.top = "50%";
   }
 });

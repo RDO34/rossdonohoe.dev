@@ -11,51 +11,62 @@
   </head>
 
   <body>
-    <div class="window-frame" id="window">
-      <header class="window-header" id="window-header">
-        <div class="header-controls">
-          <button class="header-control close" id="btn-close">
-            <svg class="control-icon" viewBox="0 0 12 12">
-              <path d="M3 3 L9 9 M9 3 L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    <main class="desktop">
+      <div class="desktop-shortcuts">
+        <div class="shortcut" id="terminal-shortcut">
+          <div class="shortcut-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48">
+              <rect x="2" y="4" width="20" height="16" rx="2" fill="rgba(0,0,0,0.7)" stroke="white" stroke-width="1.5"/>
+              <path d="M7 9l3 3-3 3" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="11" y1="15" x2="16" y2="15" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-          </button>
-          <button class="header-control minimize" id="btn-minimize">
-            <svg class="control-icon" viewBox="0 0 12 12">
-              <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
-            </svg>
-          </button>
-          <button class="header-control fullscreen" id="btn-maximize">
-            <svg class="control-icon" viewBox="0 0 12 12">
-              <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
-              <rect x="5.5" y="2.5" width="1.5" height="7" fill="currentColor"/>
-            </svg>
-          </button>
+          </div>
+          <span class="shortcut-label">Terminal</span>
         </div>
+      </div>
 
-        <h1 class="header-title">rossdonohoe.dev</h1>
+      <div class="window-frame" id="window">
+        <header class="window-header" id="window-header">
+          <div class="header-controls">
+            <button class="header-control close" id="btn-close">
+              <svg class="control-icon" viewBox="0 0 12 12">
+                <path d="M3 3 L9 9 M9 3 L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <button class="header-control minimize" id="btn-minimize">
+              <svg class="control-icon" viewBox="0 0 12 12">
+                <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
+              </svg>
+            </button>
+            <button class="header-control fullscreen" id="btn-maximize">
+              <svg class="control-icon" viewBox="0 0 12 12">
+                <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
+                <rect x="5.5" y="2.5" width="1.5" height="7" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
 
-        <div></div>
-      </header>
+          <h1 class="header-title">rossdonohoe.dev</h1>
 
-      <main class="terminal">
-        <span class="terminal-line">
-          <span class="terminal-leader">guest@rossdonohoe.dev:~$</span>
+          <div></div>
+        </header>
 
-          <span class="terminal-input">
-            <span class="caret"></span>
-          </span>
-        </span>
-      </main>
+        <main class="terminal">
+          <div class="terminal-line terminal-prompt">
+            <span class="terminal-leader">guest@rossdonohoe.dev:~$</span><span class="terminal-input"><span class="caret"></span></span>
+          </div>
+        </main>
 
-      <div class="resize-handle resize-n"></div>
-      <div class="resize-handle resize-e"></div>
-      <div class="resize-handle resize-s"></div>
-      <div class="resize-handle resize-w"></div>
-      <div class="resize-handle resize-ne"></div>
-      <div class="resize-handle resize-nw"></div>
-      <div class="resize-handle resize-se"></div>
-      <div class="resize-handle resize-sw"></div>
-    </div>
+        <div class="resize-handle resize-n"></div>
+        <div class="resize-handle resize-e"></div>
+        <div class="resize-handle resize-s"></div>
+        <div class="resize-handle resize-w"></div>
+        <div class="resize-handle resize-ne"></div>
+        <div class="resize-handle resize-nw"></div>
+        <div class="resize-handle resize-se"></div>
+        <div class="resize-handle resize-sw"></div>
+      </div>
+    </main>
 
     <script src="index.js"></script>
   </body>
