@@ -120,6 +120,20 @@
       </div>
     </main>
 
+    <div class="viewport-error" id="viewport-error">
+      <div class="viewport-error-content">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="7" x2="12" y2="13"/>
+          <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        <h2>Viewport Too Small</h2>
+        <p>Your screen is too small to display this terminal properly.</p>
+        <p class="viewport-error-details">Minimum required: 1100×700 pixels</p>
+        <p class="viewport-error-current">Current: <span id="viewport-size">...</span></p>
+      </div>
+    </div>
+
     <script src="index.js"></script>
   </body>
 </html>

@@ -1040,6 +1040,31 @@ async function sleep(_ms) {
 // Detect if we're in an iframe (recursion detection)
 const isInIframe = window.self !== window.top;
 
+// Viewport size check
+const MIN_VIEWPORT_WIDTH = 1100;
+const MIN_VIEWPORT_HEIGHT = 700;
+
+function checkViewportSize() {
+  const viewportError = document.getElementById("viewport-error");
+  const viewportSize = document.getElementById("viewport-size");
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  
+  if (viewportSize) {
+    viewportSize.textContent = `${width}×${height}`;
+  }
+  
+  if (width < MIN_VIEWPORT_WIDTH || height < MIN_VIEWPORT_HEIGHT) {
+    viewportError.classList.add("visible");
+  } else {
+    viewportError.classList.remove("visible");
+  }
+}
+
+// Check on load and resize
+window.addEventListener("load", checkViewportSize);
+window.addEventListener("resize", checkViewportSize);
+
 const scripts = {
   welcome,
 };
