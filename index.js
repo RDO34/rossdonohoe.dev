@@ -1045,19 +1045,20 @@ const scripts = {
 };
 
 async function welcome() {
-  if (isInIframe) {
-    // Recursion easter egg - we're viewing the site inside itself!
-    println("🌀 So you like recursion, eh?");
-    println("Welcome to rossdonohoe.dev²");
-    println("");
-    await sleep(400);
-  }
-  
   await simulateTyping("clear && fastfetch");
   await sleep();
   await handleCommand();
   await sleep(50);
   createNewLine();
+
+  if (isInIframe) {
+    // Recursion easter egg - we're viewing the site inside itself!
+    await sleep(400);
+    println("🌀 So you like recursion, eh?");
+    println("Welcome to rossdonohoe.dev²");
+    println("");
+    await sleep(400);
+  }
 
   await sleep(400);
 
@@ -1144,6 +1145,9 @@ windowEl.addEventListener("mousedown", () => {
   browserWindowEl.style.zIndex = "100";
   focusState.terminalFocused = true;
   focusState.browserFocused = false;
+  // Show caret when terminal is focused
+  const currentCaret = document.querySelector(".caret");
+  if (currentCaret) currentCaret.classList.remove("hidden");
 });
 
 // Bring terminal window to front when clicking on header
@@ -1317,6 +1321,9 @@ terminalShortcut.addEventListener("dblclick", (e) => {
   windowEl.classList.remove("closed");
   focusState.terminalFocused = true;
   focusState.browserFocused = false;
+  // Show caret when terminal is opened
+  const currentCaret = document.querySelector(".caret");
+  if (currentCaret) currentCaret.classList.remove("hidden");
 });
 
 btnMinimize.addEventListener("click", () => {
@@ -1371,6 +1378,9 @@ browserWindowEl.addEventListener("mousedown", () => {
   windowEl.style.zIndex = "100";
   focusState.terminalFocused = false;
   focusState.browserFocused = true;
+  // Hide caret when browser is focused
+  const currentCaret = document.querySelector(".caret");
+  if (currentCaret) currentCaret.classList.add("hidden");
 });
 
 // Browser window drag
@@ -1550,6 +1560,9 @@ browserShortcut.addEventListener("dblclick", (e) => {
   // Ensure address bar has the default URL
   browserAddressInput.value = "google.com/maps/embed";
   browserFrame.src = "https://www.google.com/maps/embed";
+  // Hide caret when browser is opened
+  const currentCaret = document.querySelector(".caret");
+  if (currentCaret) currentCaret.classList.add("hidden");
   // Focus the address bar for immediate typing
   setTimeout(() => browserAddressInput.focus(), 100);
 });
@@ -1571,6 +1584,9 @@ function browserCommand(args) {
   windowEl.style.zIndex = "100";
   focusState.terminalFocused = false;
   focusState.browserFocused = true;
+  // Hide caret when browser is opened
+  const currentCaret = document.querySelector(".caret");
+  if (currentCaret) currentCaret.classList.add("hidden");
   if (url) {
     let fullUrl = url;
     if (!fullUrl.startsWith("http://") && !fullUrl.startsWith("https://")) {

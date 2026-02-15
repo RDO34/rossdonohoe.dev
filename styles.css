@@ -278,6 +278,10 @@ a:visited:hover {
   margin-left: -1px;
 }
 
+.caret.hidden {
+  display: none;
+}
+
 .resize-handle {
   position: absolute;
   z-index: 10;
