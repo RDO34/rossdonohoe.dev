@@ -504,7 +504,7 @@ function fastfetch() {
     `<span style="color: #7aa2f7">OS:</span> rOS 1.0`,
     `<span style="color: #7aa2f7">Kernel:</span> Vanilla JS`,
     `<span style="color: #7aa2f7">Uptime:</span> ${uptimeStr}`,
-    `<span style="color: #7aa2f7">Shell:</span> custom-sh`,
+    `<span style="color: #7aa2f7">Shell:</span> rsh`,
     `<span style="color: #7aa2f7">Resolution:</span> ${window.innerWidth}x${window.innerHeight}`,
     `<span style="color: #7aa2f7">Memory:</span> 128MB / 512MB`,
     `<span style="background-color: #f7768e">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #9ece6a">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #e0af68">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #7aa2f7">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #bb9af7">&nbsp;&nbsp;&nbsp;</span><span style="background-color: #7dcfff">&nbsp;&nbsp;&nbsp;</span>`,
