@@ -368,25 +368,49 @@ function println(text, parseLinks = false) {
   const newLine = document.createElement("div");
   newLine.classList.add("terminal-line");
 
-  let innerHTML = text;
-
-  if (parseLinks) {
-    const elements = innerHTML.match(/\[.*?\)/g);
-
-    if (elements != null && elements.length > 0) {
-      for (const element of elements) {
-        const label = element.match(/\[(.*?)\]/)[1];
-        const url = element.match(/\((.*?)\)/)[1];
-
-        innerHTML = innerHTML.replace(
-          element,
-          `<a href="${url}" target="_blank">${label}</a>`,
-        );
-      }
-    }
+  if (!parseLinks) {
+    newLine.textContent = text;
+    document.querySelector(".terminal").appendChild(newLine);
+    return;
   }
 
-  newLine.innerHTML = innerHTML;
+  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = linkPattern.exec(text)) !== null) {
+    const [fullMatch, label, url] = match;
+    const matchStart = match.index;
+
+    if (matchStart > lastIndex) {
+      newLine.appendChild(
+        document.createTextNode(text.slice(lastIndex, matchStart)),
+      );
+    }
+
+    try {
+      const parsedUrl = new URL(url, window.location.origin);
+      if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
+        const anchor = document.createElement("a");
+        anchor.href = parsedUrl.href;
+        anchor.target = "_blank";
+        anchor.rel = "noopener noreferrer";
+        anchor.textContent = label;
+        newLine.appendChild(anchor);
+      } else {
+        newLine.appendChild(document.createTextNode(fullMatch));
+      }
+    } catch {
+      newLine.appendChild(document.createTextNode(fullMatch));
+    }
+
+    lastIndex = matchStart + fullMatch.length;
+  }
+
+  if (lastIndex < text.length) {
+    newLine.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
+
   document.querySelector(".terminal").appendChild(newLine);
 }
 
