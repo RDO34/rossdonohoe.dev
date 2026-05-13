@@ -1563,7 +1563,14 @@ browserAddressInput.addEventListener("keydown", (e) => {
       if (!url.startsWith("http://") && !url.startsWith("https://")) {
         url = "https://" + url;
       }
-      browserFrame.src = url;
+      try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
+          browserFrame.src = parsedUrl.href;
+        }
+      } catch (_) {
+        // Ignore invalid URLs
+      }
     }
   }
 });
