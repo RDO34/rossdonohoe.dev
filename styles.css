@@ -118,7 +118,9 @@ a:visited:hover {
 .window-frame.maximized {
   position: fixed;
   top: 0;
-  left: 0;
+  left: 0 !important;
+  right: auto !important;
+  transform: none !important;
   width: 100vw !important;
   height: 100dvh !important;
   max-width: none;
