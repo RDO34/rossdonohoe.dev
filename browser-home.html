@@ -5,18 +5,61 @@
     <meta http-equiv="Content-Security-Policy" content="script-src 'self'; object-src 'none'; base-uri 'none'" />
     <meta name="referrer" content="no-referrer" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>rOS — Start page</title>
+    <title>rOS — Bookmarks</title>
     <style>
       * { box-sizing: border-box; }
-      body { margin: 0; background: #f6f5f9; color: #302c3b; font: 15px/1.6 system-ui, sans-serif; }
-      main { max-width: 500px; margin: 12vh auto; padding: 30px; }
-      p { color: #777180; }
-      h1 { font-size: 26px; font-weight: 600; letter-spacing: -1px; }
-      a { display: block; padding: 14px 0; border-bottom: 1px solid #ded9e7; color: #594778; text-decoration: none; }
-      a:hover { text-decoration: underline; }
-      a:focus-visible { outline: 2px solid #594778; outline-offset: 3px; }
-      small { color: #777180; }
+      body {
+        margin: 0;
+        background: repeating-linear-gradient(#f5f5f9 0 1px, #eeeef4 1px 3px);
+        color: #30303d;
+        font: 12px/1.5 'Lucida Grande', 'Lucida Sans Unicode', system-ui, sans-serif;
+      }
+      main { margin: 20px; border: 1px solid #a5a6b5; background: #fff; box-shadow: 0 2px 5px #30304a12; }
+      header { display: flex; align-items: center; gap: 9px; padding: 11px 14px; border-bottom: 1px solid #a5a6b5; background: linear-gradient(#fafaff, #dedee8); box-shadow: inset 0 1px #fff; }
+      .folder { width: 21px; height: 19px; flex-shrink: 0; }
+      h1 { margin: 0; font-size: 13px; font-weight: 650; text-shadow: 0 1px #fff; }
+      .columns, .bookmark { display: grid; grid-template-columns: 18px minmax(75px, .7fr) minmax(0, 1.5fr); gap: 10px; align-items: center; padding: 9px 14px; }
+      .columns { padding-block: 4px; border-bottom: 1px solid #c0c1cd; background: linear-gradient(#fcfcff, #e5e5ee); color: #666675; font-size: 10px; }
+      .columns span:first-child { grid-column: 2; }
+      ul { list-style: none; padding: 0; margin: 0; }
+      li:nth-child(even) { background: #f1f4fa; }
+      .bookmark { color: inherit; text-decoration: none; border-bottom: 1px solid #e9eaf1; }
+      .bookmark:hover, .bookmark:focus-visible { background: #dce8fa; color: #213b68; }
+      .bookmark:focus-visible { outline: 2px solid #7099ce; outline-offset: -2px; }
+      .bookmark-icon { width: 16px; height: 18px; color: #7c8ba5; }
+      .bookmark-name { font-weight: 550; }
+      .bookmark-address { color: #717586; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      footer { padding: 6px 14px; border-top: 1px solid #c0c1cd; background: linear-gradient(#f4f4f9, #e4e4ed); color: #777783; font-size: 10px; text-shadow: 0 1px #fff; }
+      @media (max-width: 420px) {
+        main { margin: 12px; }
+        .columns, .bookmark { padding-inline: 10px; gap: 7px; }
+      }
     </style>
   </head>
-  <body><main><small>rOS / Bookmarks</small><h1>A few places on the web.</h1><p>My code and professional profile. Links open in a new tab.</p><a href="https://github.com/rdo34" target="_blank" rel="noopener noreferrer">GitHub / rdo34 ↗</a><a href="https://www.linkedin.com/in/ross-james-donohoe/" target="_blank" rel="noopener noreferrer">LinkedIn / Ross Donohoe ↗</a><a href="mailto:rossdon.95@googlemail.com" target="_blank" rel="noopener noreferrer">Email / Say hello ↗</a></main></body>
+  <body>
+    <main>
+      <header>
+        <svg class="folder" viewBox="0 0 24 21" aria-hidden="true"><path d="M1 4V2h8l3 3h11v14H1z" fill="#a5bde3" stroke="#7587a7"/><path d="M1 7h22v12H1z" fill="#c1d3ef" stroke="#7587a7"/><path d="M2 8h20" stroke="#eaf2ff"/></svg>
+        <h1>Bookmarks</h1>
+      </header>
+      <div class="columns" aria-hidden="true"><span>Name</span><span>Address</span></div>
+      <nav aria-label="Saved bookmarks">
+        <ul>
+          <li><a class="bookmark" href="https://github.com/rdo34" target="_blank" rel="noopener noreferrer" aria-label="GitHub — github.com/rdo34 (opens in a new tab)">
+            <svg class="bookmark-icon" viewBox="0 0 18 20" aria-hidden="true"><path d="M3 1h8l4 4v14H3z" fill="#f7f9fe" stroke="currentColor"/><path d="M11 1v5h4M6 10h6M6 13h6" fill="none" stroke="currentColor"/></svg>
+            <span class="bookmark-name">GitHub</span><span class="bookmark-address">github.com/rdo34</span>
+          </a></li>
+          <li><a class="bookmark" href="https://www.linkedin.com/in/ross-james-donohoe/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn — linkedin.com/in/ross-james-donohoe (opens in a new tab)">
+            <svg class="bookmark-icon" viewBox="0 0 18 20" aria-hidden="true"><path d="M3 1h8l4 4v14H3z" fill="#f7f9fe" stroke="currentColor"/><path d="M11 1v5h4M6 10h6M6 13h6" fill="none" stroke="currentColor"/></svg>
+            <span class="bookmark-name">LinkedIn</span><span class="bookmark-address">linkedin.com/in/ross-james-donohoe</span>
+          </a></li>
+          <li><a class="bookmark" href="mailto:rossdon.95@googlemail.com" target="_blank" rel="noopener noreferrer" aria-label="Email — rossdon.95@googlemail.com (opens your email app)">
+            <svg class="bookmark-icon" viewBox="0 0 18 20" aria-hidden="true"><rect x="1" y="4" width="16" height="12" rx="1" fill="#f7f9fe" stroke="currentColor"/><path d="m1 5 8 6 8-6" fill="none" stroke="currentColor"/></svg>
+            <span class="bookmark-name">Email</span><span class="bookmark-address">rossdon.95@googlemail.com</span>
+          </a></li>
+        </ul>
+      </nav>
+      <footer>3 bookmarks</footer>
+    </main>
+  </body>
 </html>
