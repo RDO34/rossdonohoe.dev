@@ -1,11 +1,12 @@
 const state = {
   path: "~",
-  env: {},
+  env: Object.create(null),
   date: new Date(),
   startTime: Date.now(),
   dirs: ["/home/guest"],
   hist: [],
   histPtr: null,
+  booting: true,
 };
 
 // Focus state - tracks which window is focused
@@ -16,7 +17,7 @@ const focusState = {
 
 const githubCache = {
   repos: null,
-  contents: {},
+  contents: Object.create(null),
   lastFetch: null,
 };
 
@@ -72,7 +73,8 @@ async function fetchGitHubFile(repo, path) {
     const data = await response.json();
     if (data.content) {
       // Decode base64 content
-      return atob(data.content.replace(/\s/g, ""));
+      const bytes = Uint8Array.from(atob(data.content.replace(/\s/g, "")), (char) => char.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
     }
     return null;
   } catch (e) {
@@ -82,31 +84,32 @@ async function fetchGitHubFile(repo, path) {
 
 function isGitHubPath(absolutePath) {
   return (
-    absolutePath.startsWith("/home/guest/projects/") &&
+    absolutePath.startsWith("/home/guest/repos/") &&
     absolutePath.split("/").length > 3
   );
 }
 
 function parseGitHubPath(absolutePath) {
   const parts = absolutePath.split("/").filter(Boolean);
-  // parts = ['home', 'guest', 'projects', 'repo-name', ...path]
+  // parts = ['home', 'guest', 'repos', 'repo-name', ...path]
   const repo = parts[3];
   const path = parts.slice(4).join("/");
   return { repo, path };
 }
 
-async function getProjectsDir() {
+async function getReposDir() {
   const repos = await fetchGitHubRepos();
-  const projects = {
+  const repoDirectory = {
     "README.md":
-      "# Projects\n\nThis directory contains my GitHub repositories.\n\nUse 'ls' to see all projects, then 'cd' into any project to explore it.\n\nEach project shows actual files from GitHub!",
+      "# Repos\n\nThis directory contains my GitHub repositories.\n\nUse 'ls' to see all repos, then 'cd' into any repo to explore it.\n\nEach repo shows actual files from GitHub!",
   };
 
   for (const repo of repos) {
-    projects[repo.name] = {};
+    if (['__proto__', 'prototype', 'constructor'].includes(repo.name)) continue;
+    repoDirectory[repo.name] = {};
   }
 
-  return projects;
+  return repoDirectory;
 }
 
 async function getGitHubDirContents(absolutePath) {
@@ -118,6 +121,7 @@ async function getGitHubDirContents(absolutePath) {
 
   const result = {};
   for (const item of contents) {
+    if (['__proto__', 'prototype', 'constructor'].includes(item.name)) continue;
     if (item.type === "dir") {
       result[item.name] = {};
     } else {
@@ -150,13 +154,9 @@ If you're trying to do some cool grep-pipe-xargs wizardry it won't work.
 This has just been a fun way to present some information in a way that shows what I enjoy.
 
 I will come back and implement a vim emulator one day, I swear...`,
-      "links.txt": `[github](https://github.com/rdo34)&nbsp;|&nbsp;[linkedin](https://linkedin.com/in/ross-james-donohoe)`,
-      blog: {
-        "placeholder.txt": "Pfft, I don't have a blog",
-      },
-      projects: {
+      repos: {
         "README.md":
-          "# Projects\n\nThis directory contains my GitHub repositories.\n\nUse 'ls' to see all projects, then 'cd' into any project to explore it.",
+          "# Repos\n\nThis directory contains my GitHub repositories.\n\nUse 'ls' to see all repos, then 'cd' into any repo to explore it.",
       },
     },
   },
@@ -164,10 +164,11 @@ I will come back and implement a vim emulator one day, I swear...`,
 
 addEventListener("keypress", function (e) {
   // Only handle terminal input when terminal is focused
-  if (!focusState.terminalFocused) return;
+  if (!focusState.terminalFocused || state.booting) return;
 
   // Don't handle if user is typing in an input field
-  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  if (e.target.closest('input, textarea, button, a, select')) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
 
   if (e.key.length === 1) {
     e.preventDefault();
@@ -177,10 +178,10 @@ addEventListener("keypress", function (e) {
 
 addEventListener("keydown", async function (e) {
   // Only handle terminal input when terminal is focused
-  if (!focusState.terminalFocused) return;
+  if (!focusState.terminalFocused || state.booting) return;
 
   // Don't handle if user is typing in an input field (like browser address bar)
-  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  if (e.target.closest('input, textarea, button, a, select')) return;
 
   if (e.key === "Enter") {
     e.preventDefault();
@@ -246,7 +247,7 @@ function deleteCurrentChar() {
   const next = caret().nextElementSibling;
   const current = caret();
 
-  if (current) {
+  if (current && next) {
     parentNode.removeChild(current);
     if (next) {
       next.classList.add("caret");
@@ -279,7 +280,7 @@ function moveHistoryBack() {
     state.histPtr = Math.max(0, state.histPtr - 1);
   }
 
-  createInputLine(state.hist[state.histPtr]);
+  createInputLine(state.hist[state.histPtr] || "");
 }
 
 function moveHistoryForward() {
@@ -294,7 +295,7 @@ function moveHistoryForward() {
   }
 
   state.histPtr = Math.min(state.hist.length - 1, state.histPtr + 1);
-  createInputLine(state.hist[state.histPtr]);
+  createInputLine(state.hist[state.histPtr] || "");
 }
 
 function createInputLine(text) {
@@ -321,7 +322,7 @@ function createNewLine() {
   newLine.classList.add("terminal-line", "terminal-prompt");
 
   const leader = document.createElement("span");
-  leader.innerHTML = makeLeaderText();
+  leader.textContent = makeLeaderText();
   leader.classList.add("terminal-leader");
   newLine.appendChild(leader);
 
@@ -331,6 +332,7 @@ function createNewLine() {
 
   const caret = document.createElement("span");
   caret.classList.add("caret");
+  caret.classList.toggle('hidden', !focusState.terminalFocused);
   input.appendChild(caret);
 
   const lastCaret = document.querySelector(".caret");
@@ -364,30 +366,47 @@ function makeLeaderText() {
   return `guest@rossdonohoe.dev:${state.path}$`;
 }
 
+// Terminal text (including remote repository files) must never become page markup.
 function println(text, parseLinks = false) {
-  const newLine = document.createElement("div");
-  newLine.classList.add("terminal-line");
-
-  let innerHTML = text;
-
+  const newLine = document.createElement('div');
+  newLine.classList.add('terminal-line');
+  const value = String(text);
   if (parseLinks) {
-    const elements = innerHTML.match(/\[.*?\)/g);
-
-    if (elements != null && elements.length > 0) {
-      for (const element of elements) {
-        const label = element.match(/\[(.*?)\]/)[1];
-        const url = element.match(/\((.*?)\)/)[1];
-
-        innerHTML = innerHTML.replace(
-          element,
-          `<a href="${url}" target="_blank">${label}</a>`,
-        );
+    const links = /\[([^\]\n]+)\]\(([^\s)]+)\)/g;
+    let offset = 0;
+    for (const match of value.matchAll(links)) {
+      newLine.append(document.createTextNode(value.slice(offset, match.index)));
+      let url;
+      try {
+        url = new URL(match[2]);
+      } catch {
+        // Invalid URLs stay visible as plain text.
       }
+      if (url && ['https:', 'http:', 'mailto:', 'tel:'].includes(url.protocol)) {
+        const link = document.createElement('a');
+        link.textContent = match[1];
+        link.href = url.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        newLine.append(link);
+      } else {
+        newLine.append(document.createTextNode(match[0]));
+      }
+      offset = match.index + match[0].length;
     }
+    newLine.append(document.createTextNode(value.slice(offset)));
+  } else {
+    newLine.textContent = value;
   }
+  document.querySelector('.terminal').append(newLine);
+}
 
-  newLine.innerHTML = innerHTML;
-  document.querySelector(".terminal").appendChild(newLine);
+// Only fastfetch's fixed, locally authored colour spans use this rendering path.
+function printFastfetchLine(html) {
+  const line = document.createElement('div');
+  line.className = 'terminal-line';
+  line.innerHTML = html;
+  document.querySelector('.terminal').append(line);
 }
 
 const handlers = {
@@ -515,7 +534,7 @@ function fastfetch() {
     const logoLine = logo[i] || " ".repeat(27);
     const infoLine = info[i] || "";
     const padding = "   ";
-    println(logoLine + padding + infoLine, false);
+    printFastfetchLine(logoLine + padding + infoLine);
   }
 }
 
@@ -540,7 +559,7 @@ async function handleCommand() {
 async function cmd(command) {
   const [baseCommand, ...args] = command.split(HTML_SPACE_CHAR);
 
-  if (handlers[baseCommand]) {
+  if (Object.hasOwn(handlers, baseCommand)) {
     await handlers[baseCommand](args);
   } else {
     insertCommandNotFound(baseCommand);
@@ -583,12 +602,12 @@ async function list(args) {
   const targetPath = pathArg || ".";
   const absolutePath = Path.absolute(targetPath);
 
-  // Check if we're listing a GitHub project directory
+  // Check if we're listing a GitHub repo directory
   let dir;
-  if (absolutePath === "/home/guest/projects") {
-    // Just the projects folder - show repo list
-    const projectsDir = await getProjectsDir();
-    dirMap.home.guest.projects = projectsDir;
+  if (absolutePath === "/home/guest/repos") {
+    // Just the repos folder - show repo list
+    const reposDir = await getReposDir();
+    dirMap.home.guest.repos = reposDir;
     dir = Path.resolve(targetPath);
   } else if (isGitHubPath(absolutePath)) {
     // Inside a specific project - fetch from GitHub
@@ -596,7 +615,7 @@ async function list(args) {
     if (githubContents) {
       // Update dirMap with the fetched contents
       const { repo, path: ghPath } = parseGitHubPath(absolutePath);
-      let current = dirMap.home.guest.projects;
+      let current = dirMap.home.guest.repos;
       if (!current[repo]) current[repo] = {};
       current = current[repo];
 
@@ -673,19 +692,13 @@ async function list(args) {
     });
 
     for (const entry of entryDetails) {
-      println(entry.replace(/ /g, "&nbsp;"));
+      println(entry);
     }
 
     return;
   }
 
-  const newLine = document.createElement("div");
-  newLine.classList.add("terminal-line");
-  for (const entry of entries) {
-    newLine.innerHTML += entry;
-    newLine.innerHTML += "&Tab;&Tab;";
-  }
-  document.querySelector(".terminal").appendChild(newLine);
+  println(entries.join('\t\t'));
 }
 
 async function changeDirectory(args) {
@@ -707,18 +720,18 @@ async function changeDirectory(args) {
 
   const newFullPath = Path.absolute(newPath);
 
-  // Check if we're accessing projects directory
-  if (newFullPath.startsWith("/home/guest/projects")) {
-    await getProjectsDir();
+  // Check if we're accessing repos directory
+  if (newFullPath.startsWith("/home/guest/repos")) {
+    await getReposDir();
   }
 
-  // Check if we're cd'ing into a GitHub project subdirectory
+  // Check if we're cd'ing into a GitHub repo subdirectory
   if (isGitHubPath(newFullPath)) {
     const githubContents = await getGitHubDirContents(newFullPath);
     if (githubContents) {
       // Update dirMap with fetched contents
       const { repo, path: ghPath } = parseGitHubPath(newFullPath);
-      let current = dirMap.home.guest.projects;
+      let current = dirMap.home.guest.repos;
       if (!current[repo]) current[repo] = {};
       current = current[repo];
 
@@ -760,6 +773,10 @@ function alias(args) {
     return;
   }
   const [alias, command] = args[0].split("=");
+  if (['__proto__', 'prototype', 'constructor'].includes(alias)) {
+    println('alias: reserved name');
+    return;
+  }
 
   if (!alias || !command) {
     for (const arg of args.filter((arg) => !arg.startsWith("-"))) {
@@ -782,9 +799,13 @@ async function concatenate(args) {
     return;
   }
 
+  if (Path.outOfBounds(filePath)) {
+    permissionDenied('cat')();
+    return;
+  }
   const absolutePath = Path.absolute(filePath);
 
-  // Check if we're accessing a GitHub project file
+  // Check if we're accessing a GitHub repo file
   if (isGitHubPath(absolutePath)) {
     const content = await getGitHubFileContent(absolutePath);
     if (content) {
@@ -796,9 +817,9 @@ async function concatenate(args) {
     }
   }
 
-  // Check if we're accessing projects directory
-  if (absolutePath.startsWith("/home/guest/projects")) {
-    await getProjectsDir();
+  // Check if we're accessing repos directory
+  if (absolutePath.startsWith("/home/guest/repos")) {
+    await getReposDir();
   }
 
   const file = Path.resolve(filePath);
@@ -827,6 +848,11 @@ function makeDirectory(args) {
     return;
   }
 
+  if (Path.outOfBounds(dirPath)) {
+    permissionDenied('mkdir')();
+    return;
+  }
+
   const dir = Path.resolve(dirPath);
 
   if (dir) {
@@ -838,7 +864,7 @@ function makeDirectory(args) {
   const dirName = pathParts.pop();
   const parentDir = Path.resolve(pathParts.join("/"));
 
-  if (!parentDir) {
+  if (!parentDir || typeof parentDir !== 'object') {
     println(
       `mkdir: cannot create directory '${dirPath}': No such file or directory`,
     );
@@ -856,6 +882,11 @@ function makeFile(args) {
     return;
   }
 
+  if (Path.outOfBounds(filePath)) {
+    permissionDenied('touch')();
+    return;
+  }
+
   const file = Path.resolve(filePath);
 
   if (file) {
@@ -867,7 +898,7 @@ function makeFile(args) {
   const fileName = pathParts.pop();
   const parentDir = Path.resolve(pathParts.join("/"));
 
-  if (!parentDir) {
+  if (!parentDir || typeof parentDir !== 'object') {
     println(
       `touch: cannot create file '${filePath}': No such file or directory`,
     );
@@ -877,31 +908,8 @@ function makeFile(args) {
   parentDir[fileName] = "";
 }
 
-function node(args) {
-  if (args[0] !== "-p") {
-    println("Welcome to Node.js v14.17.0.");
-    println('Type ".help" for more information.');
-    return;
-  }
-
-  let code = args.slice(1).join(" ");
-
-  // Remove surrounding quotes if present
-  if (
-    (code.startsWith('"') && code.endsWith('"')) ||
-    (code.startsWith("'") && code.endsWith("'"))
-  ) {
-    code = code.slice(1, -1);
-  }
-
-  try {
-    const result = eval(code);
-    if (result !== undefined) {
-      println(String(result));
-    }
-  } catch (e) {
-    println(e.toString());
-  }
+function node() {
+  println('node: this is a simulated shell; JavaScript execution is not supported.');
 }
 
 function processWorkingDirectory() {
@@ -944,14 +952,8 @@ function exportFn(args) {
 }
 
 function history(_args) {
-  for (const [idx, cmd] of state.hist.entries()) {
-    const newLine = document.createElement("div");
-    newLine.classList.add("terminal-line");
-    newLine.innerHTML += "&nbsp;";
-    newLine.innerHTML += idx + 1;
-    newLine.innerHTML += "&Tab;";
-    newLine.innerHTML += cmd;
-    document.querySelector(".terminal").appendChild(newLine);
+  for (const [index, command] of state.hist.entries()) {
+    println(` ${index + 1}\t${command}`);
   }
 }
 
@@ -999,9 +1001,15 @@ class Path {
 
   static resolve(_path = "") {
     const resolvedPath = Path.traverse(_path);
+    if (resolvedPath.some((part) => ['__proto__', 'prototype', 'constructor'].includes(part))) {
+      return undefined;
+    }
 
     let resolved = dirMap;
     for (const part of resolvedPath) {
+      if (!resolved || typeof resolved !== 'object' || !Object.hasOwn(resolved, part)) {
+        return undefined;
+      }
       resolved = resolved[part];
     }
 
@@ -1016,7 +1024,8 @@ class Path {
   static outOfBounds(_path = "") {
     if (!_path) return false;
     const path = Path.absolute(_path);
-    return path.startsWith("/") && !path.startsWith("/home/guest");
+    return (path !== '/home/guest' && !path.startsWith('/home/guest/'))
+      || Path.traverse(_path).some((part) => ['__proto__', 'prototype', 'constructor'].includes(part));
   }
 }
 
@@ -1039,31 +1048,6 @@ async function sleep(_ms) {
 
 // Detect if we're in an iframe (recursion detection)
 const isInIframe = window.self !== window.top;
-
-// Viewport size check
-const MIN_VIEWPORT_WIDTH = 1100;
-const MIN_VIEWPORT_HEIGHT = 700;
-
-function checkViewportSize() {
-  const viewportError = document.getElementById("viewport-error");
-  const viewportSize = document.getElementById("viewport-size");
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-  
-  if (viewportSize) {
-    viewportSize.textContent = `${width}×${height}`;
-  }
-  
-  if (width < MIN_VIEWPORT_WIDTH || height < MIN_VIEWPORT_HEIGHT) {
-    viewportError.classList.add("visible");
-  } else {
-    viewportError.classList.remove("visible");
-  }
-}
-
-// Check on load and resize
-window.addEventListener("load", checkViewportSize);
-window.addEventListener("resize", checkViewportSize);
 
 const scripts = {
   welcome,
@@ -1101,7 +1085,7 @@ async function welcome() {
   createNewLine();
 }
 
-scripts.welcome();
+scripts.welcome().finally(() => { state.booting = false; });
 
 const CONSTANTS = {
   HELP: `GNU bash, version 5.1.16(1)-release (x86_64-pc-linux-gnu)
@@ -1232,16 +1216,16 @@ document.addEventListener("mousemove", (e) => {
   // Terminal drag
   if (isDragging) {
     if (!windowEl.classList.contains("maximized")) {
-      windowEl.style.left = e.clientX - dragOffsetX + "px";
-      windowEl.style.top = e.clientY - dragOffsetY + "px";
+      windowEl.style.left = Math.max(0, Math.min(window.innerWidth - 120, e.clientX - dragOffsetX)) + "px";
+      windowEl.style.top = Math.max(35, Math.min(window.innerHeight - 110, e.clientY - dragOffsetY)) + "px";
     }
   }
 
   // Browser drag
   if (browserIsDragging) {
     if (!browserWindowEl.classList.contains("maximized")) {
-      browserWindowEl.style.left = e.clientX - browserDragOffsetX + "px";
-      browserWindowEl.style.top = e.clientY - browserDragOffsetY + "px";
+      browserWindowEl.style.left = Math.max(0, Math.min(window.innerWidth - 120, e.clientX - browserDragOffsetX)) + "px";
+      browserWindowEl.style.top = Math.max(35, Math.min(window.innerHeight - 110, e.clientY - browserDragOffsetY)) + "px";
     }
   }
 
@@ -1360,9 +1344,6 @@ terminalShortcut.addEventListener("dblclick", (e) => {
 
 btnMinimize.addEventListener("click", () => {
   windowEl.classList.add("minimized");
-  setTimeout(() => {
-    windowEl.classList.remove("minimized");
-  }, 100);
 });
 
 btnMaximize.addEventListener("click", () => {
@@ -1376,9 +1357,9 @@ btnMaximize.addEventListener("click", () => {
   } else {
     windowEl.style.width = "";
     windowEl.style.height = "";
-    windowEl.style.transform = "translate(-50%, -50%)";
-    windowEl.style.left = "50%";
-    windowEl.style.top = "50%";
+    windowEl.style.transform = "";
+    windowEl.style.left = "";
+    windowEl.style.top = "";
   }
 });
 
@@ -1485,8 +1466,8 @@ browserWindowEl.querySelectorAll(".resize-handle").forEach((handle) => {
 document.addEventListener("mousemove", (e) => {
   if (browserIsDragging) {
     if (!browserWindowEl.classList.contains("maximized")) {
-      browserWindowEl.style.left = e.clientX - browserDragOffsetX + "px";
-      browserWindowEl.style.top = e.clientY - browserDragOffsetY + "px";
+      browserWindowEl.style.left = Math.max(0, Math.min(window.innerWidth - 120, e.clientX - browserDragOffsetX)) + "px";
+      browserWindowEl.style.top = Math.max(35, Math.min(window.innerHeight - 110, e.clientY - browserDragOffsetY)) + "px";
     }
   }
 
@@ -1531,9 +1512,6 @@ browserBtnClose.addEventListener("click", () => {
 
 browserBtnMinimize.addEventListener("click", () => {
   browserWindowEl.classList.add("minimized");
-  setTimeout(() => {
-    browserWindowEl.classList.remove("minimized");
-  }, 100);
 });
 
 browserBtnMaximize.addEventListener("click", () => {
@@ -1553,18 +1531,35 @@ browserBtnMaximize.addEventListener("click", () => {
   }
 });
 
-// Address bar navigation
-browserAddressInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    let url = browserAddressInput.value.trim();
-    if (url) {
-      // Auto-prefix https:// if no protocol specified
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        url = "https://" + url;
-      }
-      browserFrame.src = url;
-    }
+function navigateBrowser(value) {
+  const destination = value.trim();
+  if (!destination) return false;
+  if (destination === 'rOS://start') {
+    browserFrame.src = 'browser-home.html';
+    browserAddressInput.value = destination;
+    return true;
+  }
+  let url;
+  try {
+    const hasScheme = /^[a-z][a-z\d+.-]*:/i.test(destination);
+    url = new URL(hasScheme ? destination : `https://${destination}`);
+  } catch {
+    println('browser: enter a valid http:// or https:// URL');
+    return false;
+  }
+  if (!['https:', 'http:'].includes(url.protocol)) {
+    println('browser: only http:// and https:// URLs are supported');
+    return false;
+  }
+  browserAddressInput.value = url.href;
+  browserFrame.src = url.href;
+  return true;
+}
+
+browserAddressInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    navigateBrowser(browserAddressInput.value);
   }
 });
 
@@ -1590,8 +1585,8 @@ browserShortcut.addEventListener("dblclick", (e) => {
   focusState.terminalFocused = false;
   focusState.browserFocused = true;
   // Ensure address bar has the default URL
-  browserAddressInput.value = "google.com/maps/embed";
-  browserFrame.src = "https://www.google.com/maps/embed";
+  browserAddressInput.value = "rOS://start";
+  browserFrame.src = "browser-home.html";
   // Hide caret when browser is opened
   const currentCaret = document.querySelector(".caret");
   if (currentCaret) currentCaret.classList.add("hidden");
@@ -1619,14 +1614,7 @@ function browserCommand(args) {
   // Hide caret when browser is opened
   const currentCaret = document.querySelector(".caret");
   if (currentCaret) currentCaret.classList.add("hidden");
-  if (url) {
-    let fullUrl = url;
-    if (!fullUrl.startsWith("http://") && !fullUrl.startsWith("https://")) {
-      fullUrl = "https://" + fullUrl;
-    }
-    browserAddressInput.value = fullUrl;
-    browserFrame.src = fullUrl;
-  }
+  if (url) navigateBrowser(url);
   // Focus the address bar for immediate typing
   browserAddressInput.focus();
 }

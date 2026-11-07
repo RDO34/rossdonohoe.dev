@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
-    <title>Ross Donohoe - Software Engineer</title>
-    <meta name="description" content="Ross Donohoe - Software Engineer" />
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self'; object-src 'none'; base-uri 'none'" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Ross Donohoe — Software Engineer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Ross Donohoe — Senior Software Engineer in Glasgow. Explore my experience, skills and interests on an interactive desktop." />
 
     <link rel="stylesheet" href="styles.css" />
     <link rel="manifest" href="site.webmanifest" />
@@ -11,44 +14,78 @@
   </head>
 
   <body>
+    <svg class="app-icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="icon-metal" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".48" stop-color="#dce0e7"/><stop offset="1" stop-color="#929ba9"/></linearGradient>
+        <linearGradient id="icon-screen" x2="0" y2="1"><stop stop-color="#303744"/><stop offset="1" stop-color="#11151e"/></linearGradient>
+        <linearGradient id="icon-paper" x2=".8" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#e1e7f3"/></linearGradient>
+        <linearGradient id="icon-ocean" x2="0" y2="1"><stop stop-color="#a3e7ff"/><stop offset=".5" stop-color="#409ad0"/><stop offset="1" stop-color="#255383"/></linearGradient>
+        <linearGradient id="icon-blue" x2="0" y2="1"><stop stop-color="#a6bce7"/><stop offset="1" stop-color="#657aa9"/></linearGradient>
+      </defs>
+      <symbol id="app-terminal" viewBox="0 0 64 64">
+        <rect x="3" y="9" width="58" height="46" rx="5" fill="url(#icon-metal)" stroke="#626a78"/>
+        <rect x="6" y="12" width="52" height="39" rx="2" fill="url(#icon-screen)" stroke="#727c8c"/>
+        <path d="M7 13h50v13C38 31 22 23 7 30z" fill="#fff" opacity=".08"/>
+        <path d="m15 23 9 8-9 8m14 1h13" fill="none" stroke="#eff2fa" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
+        <path d="M10 54h44" stroke="#f9fbff" stroke-opacity=".7"/>
+      </symbol>
+      <symbol id="app-document" viewBox="0 0 64 64">
+        <path d="M13 3h29l11 12v44H13z" fill="#000" opacity=".15" transform="translate(1 2)"/>
+        <path d="M12 3h29l11 12v44H12z" fill="url(#icon-paper)" stroke="#78869c"/>
+        <path d="M41 3v13h11" fill="#c2cce0" stroke="#78869c"/>
+        <rect x="18" y="21" width="28" height="11" rx="1" fill="url(#icon-blue)"/>
+        <circle cx="24" cy="25" r="2" fill="#f4f6ff"/><path d="M21 30q3-5 6 0" fill="#f4f6ff"/>
+        <path d="M31 25h11m-11 3h8" stroke="#f5f7ff" stroke-width="1.3"/>
+        <path d="M19 38h26m-26 5h26m-26 5h26m-26 5h17" stroke="#8390a7" stroke-width="1.5"/>
+      </symbol>
+      <symbol id="app-browser" viewBox="0 0 64 64">
+        <circle cx="32" cy="33" r="28" fill="#000" opacity=".15"/>
+        <circle cx="32" cy="31" r="28" fill="url(#icon-metal)" stroke="#68778d"/>
+        <circle cx="32" cy="31" r="24" fill="url(#icon-ocean)" stroke="#657e9b"/>
+        <path d="M32 10v5m0 32v5M11 31h5m32 0h5M17 16l4 4m22 22 4 4m0-30-4 4M21 42l-4 4" stroke="#e8f9ff" stroke-width="1.5"/>
+        <circle cx="32" cy="31" r="17" fill="none" stroke="#e8f9ff" stroke-opacity=".45" stroke-dasharray="1 4"/>
+        <path d="m44 16-8 19-8-7z" fill="#d85e65" stroke="#943d4c" stroke-width=".6"/>
+        <path d="m20 46 8-18 8 7z" fill="#f5f4ec" stroke="#c6d4e1" stroke-width=".6"/>
+        <circle cx="32" cy="31" r="2" fill="#e9e8e5" stroke="#727e90"/>
+        <path d="M12 24a21 21 0 0 1 39-4c-12-5-26-4-39 4" fill="#fff" opacity=".18"/>
+      </symbol>
+    </svg>
     <main class="desktop">
+      <header class="desktop-menubar">
+        <span class="os-name">rOS</span><span id="active-app-name">About</span>
+        <span class="menubar-location">Glasgow, UK</span>
+        <time id="desktop-clock" aria-label="Current time"></time>
+      </header>
       <div class="desktop-shortcuts">
-        <div class="shortcut" id="terminal-shortcut">
-          <div class="shortcut-icon">
-            <svg viewBox="0 0 24 24" width="48" height="48">
-              <rect x="2" y="4" width="20" height="16" rx="2" fill="rgba(0,0,0,0.7)" stroke="white" stroke-width="1.5"/>
-              <path d="M7 9l3 3-3 3" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="11" y1="15" x2="16" y2="15" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </div>
+        <button type="button" class="shortcut" id="terminal-shortcut" aria-label="Open Terminal">
+          <svg class="desktop-app-icon" viewBox="0 0 64 64" aria-hidden="true"><use href="#app-terminal" /></svg>
           <span class="shortcut-label">Terminal</span>
-        </div>
-        <div class="shortcut" id="browser-shortcut">
-          <div class="shortcut-icon">
-            <svg viewBox="0 0 24 24" width="48" height="48">
-              <circle cx="12" cy="12" r="10" fill="rgba(0,0,0,0.7)" stroke="white" stroke-width="1.5"/>
-              <ellipse cx="12" cy="12" rx="4" ry="10" fill="none" stroke="white" stroke-width="1"/>
-              <line x1="2" y1="12" x2="22" y2="12" stroke="white" stroke-width="1"/>
-            </svg>
-          </div>
+        </button>
+        <button type="button" class="shortcut" id="browser-shortcut" aria-label="Open Browser">
+          <svg class="desktop-app-icon" viewBox="0 0 64 64" aria-hidden="true"><use href="#app-browser" /></svg>
           <span class="shortcut-label">Browser</span>
-        </div>
+        </button>
+
+        <button type="button" class="shortcut" data-open="document-window" aria-label="Open About">
+          <svg class="desktop-app-icon" viewBox="0 0 64 64" aria-hidden="true"><use href="#app-document" /></svg>
+          <span class="shortcut-label">About</span>
+        </button>
       </div>
 
-      <div class="window-frame" id="window">
+      <div class="window-frame" id="window" role="region" aria-label="Terminal">
         <header class="window-header" id="window-header">
           <div class="header-controls">
-            <button class="header-control close" id="btn-close">
+            <button class="header-control close" id="btn-close" aria-label="Close Terminal" title="Close">
               <svg class="control-icon" viewBox="0 0 12 12">
                 <path d="M3 3 L9 9 M9 3 L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </button>
-            <button class="header-control minimize" id="btn-minimize">
+            <button class="header-control minimize" id="btn-minimize" aria-label="Minimize Terminal" title="Minimize">
               <svg class="control-icon" viewBox="0 0 12 12">
                 <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
               </svg>
             </button>
-            <button class="header-control fullscreen" id="btn-maximize">
+            <button class="header-control fullscreen" id="btn-maximize" aria-label="Maximize Terminal" title="Maximize">
               <svg class="control-icon" viewBox="0 0 12 12">
                 <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
                 <rect x="5.5" y="2.5" width="1.5" height="7" fill="currentColor"/>
@@ -56,16 +93,17 @@
             </button>
           </div>
 
-          <h1 class="header-title">rossdonohoe.dev</h1>
+          <h1 class="header-title"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#app-terminal" /></svg>rossdonohoe.dev</h1>
 
           <div></div>
         </header>
 
-        <main class="terminal">
+        <section class="terminal" aria-label="Terminal output" tabindex="0">
           <div class="terminal-line terminal-prompt">
             <span class="terminal-leader">guest@rossdonohoe.dev:~$</span><span class="terminal-input"><span class="caret"></span></span>
           </div>
-        </main>
+        </section>
+        <form id="mobile-command-form"><label for="mobile-command">$</label><input id="mobile-command" aria-label="Terminal command" placeholder="Type a command…" autocomplete="off" autocapitalize="off" spellcheck="false" /></form>
 
         <div class="resize-handle resize-n"></div>
         <div class="resize-handle resize-e"></div>
@@ -80,17 +118,17 @@
       <div class="window-frame browser-window" id="browser-window">
         <header class="window-header" id="browser-header">
           <div class="header-controls">
-            <button class="header-control close" id="browser-btn-close">
+            <button class="header-control close" id="browser-btn-close" aria-label="Close Browser" title="Close">
               <svg class="control-icon" viewBox="0 0 12 12">
                 <path d="M3 3 L9 9 M9 3 L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </button>
-            <button class="header-control minimize" id="browser-btn-minimize">
+            <button class="header-control minimize" id="browser-btn-minimize" aria-label="Minimize Browser" title="Minimize">
               <svg class="control-icon" viewBox="0 0 12 12">
                 <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
               </svg>
             </button>
-            <button class="header-control fullscreen" id="browser-btn-maximize">
+            <button class="header-control fullscreen" id="browser-btn-maximize" aria-label="Maximize Browser" title="Maximize">
               <svg class="control-icon" viewBox="0 0 12 12">
                 <rect x="2.5" y="5.5" width="7" height="1.5" fill="currentColor"/>
                 <rect x="5.5" y="2.5" width="1.5" height="7" fill="currentColor"/>
@@ -99,14 +137,14 @@
           </div>
 
           <div class="browser-address-bar">
-            <input type="text" class="address-input" id="browser-address" placeholder="Enter URL..." value="google.com/maps/embed" />
+            <input type="text" class="address-input" id="browser-address" aria-label="Browser address" placeholder="Enter URL..." value="rOS://start" />
           </div>
 
           <div></div>
         </header>
 
         <div class="browser-content">
-          <iframe id="browser-frame" src="https://www.google.com/maps/embed" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+          <iframe id="browser-frame" title="Desktop web browser" src="browser-home.html" sandbox="allow-scripts allow-forms allow-popups" referrerpolicy="no-referrer"></iframe>
         </div>
 
         <div class="resize-handle resize-n"></div>
@@ -118,22 +156,49 @@
         <div class="resize-handle resize-se"></div>
         <div class="resize-handle resize-sw"></div>
       </div>
+
+      <section class="window-frame document-window" id="document-window" aria-label="About document">
+        <header class="window-header document-header"><div class="header-controls">
+          <button type="button" class="header-control close" data-window-action="close" aria-label="Close About" title="Close">×</button>
+          <button type="button" class="header-control minimize" data-window-action="minimize" aria-label="Minimize About" title="Minimize">−</button>
+          <button type="button" class="header-control fullscreen" data-window-action="maximize" aria-label="Maximize About" title="Maximize">+</button>
+        </div><h2 class="header-title"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#app-document" /></svg>About</h2><span class="window-kind">Document</span></header>
+        <nav class="document-toolbar" aria-label="Document sections"><span>ross-donohoe.md</span><a href="#profile" aria-current="location">Profile</a><a href="#experience">Experience</a><a href="#skills">Skills</a><a href="#contact">Contact</a></nav>
+        <div class="document-scroll" tabindex="0" aria-label="Scroll About document">
+          <article class="cv-document">
+            <div class="document-folio"><span>Product engineering</span><span>Glasgow, UK</span></div>
+            <header id="profile" class="document-masthead"><h1>Ross Donohoe</h1><p>Senior Software Engineer</p></header>
+            <p class="document-profile" data-terminal-file="about-me.txt">Full-stack, product-focussed engineer and technical lead with 8+ years across energy, healthcare, media &amp; telecommunications, SaaS and eCommerce. I work with product teams and clients, from small, autonomous startups to large enterprises, taking software from architecture to delivery.</p>
+            <section id="experience" data-terminal-file="experience.txt">
+              <h2>Professional experience</h2>
+              <article class="document-job"><div class="company-line"><h3>OVO <span>Energy</span></h3><p>Aug 2026 – Present</p></div><p class="document-role">Senior Software Engineer</p></article>
+              <article class="document-job"><div class="company-line"><h3>Phlo <span>Healthcare</span></h3><p>Jun 2022 – Aug 2026</p></div><dl class="document-progression"><div><dt>Principal Software Engineer</dt><dd>Apr 2025 – Aug 2026</dd></div><div><dt>Senior Software Engineer II</dt><dd>Apr 2023 – Apr 2025</dd></div><div><dt>Senior Software Engineer I</dt><dd>Jun 2022 – Apr 2023</dd></div></dl></article>
+              <article class="document-job"><div class="company-line"><h3>Sky <span>Media &amp; telecommunications</span></h3><p>May 2018 – May 2022</p></div><p class="document-role">Full-Stack Software Engineer</p></article>
+            </section>
+            <section id="skills" data-terminal-file="skills.txt"><h2>Key skills</h2><dl class="document-skills">
+              <div><dt>Software architecture</dt><dd>System design, domain-driven design (DDD), event-driven systems, microservices, distributed systems.</dd></div>
+              <div><dt>Web &amp; mobile</dt><dd>HTML, CSS, JavaScript, TypeScript, React, Next.js, React Native.</dd></div>
+              <div><dt>Backend &amp; data</dt><dd>Node.js, Java, Go, Rust, SQL / PostgreSQL, MongoDB, Elasticsearch, Kafka, REST APIs, GraphQL.</dd></div>
+              <div><dt>Cloud &amp; delivery</dt><dd>Google Cloud (GCP), AWS, Azure, Kubernetes, Docker, CI/CD, test-driven development (TDD).</dd></div>
+              <div><dt>AI-native workflows</dt><dd>Claude Code, Codex and OpenCode for development, code review and documentation.</dd></div>
+            </dl></section>
+            <section id="education" data-terminal-file="education.txt"><h2>Education</h2><h3>BSc (Hons), Product Design &amp; Innovation</h3><div class="company-line"><p>University of Strathclyde</p><p>2013 – 2017</p></div></section>
+            <section id="interests" data-terminal-file="interests.txt"><h2>Interests</h2><p>Hiking, bouldering, reading, photography and chess. Guitar and music production.</p></section>
+            <section id="contact" data-terminal-file="contact.txt"><h2>Get in touch</h2><address><a href="mailto:rossdon.95@googlemail.com">Email <span>rossdon.95@googlemail.com</span></a><a href="tel:+447907809159">Phone <span>+44 7907 809159</span></a><a href="https://www.rossdonohoe.dev">Website <span>rossdonohoe.dev</span></a><a href="https://www.linkedin.com/in/ross-james-donohoe/">LinkedIn <span>ross-james-donohoe ↗</span></a><a href="https://github.com/rdo34">GitHub <span>rdo34 ↗</span></a></address></section>
+            <p class="document-end">End of document <span>■</span></p>
+          </article>
+        </div>
+        <footer class="document-status"><span>Read only</span><span>UTF-8</span><span>Ross Donohoe / CV</span></footer>
+      </section>
+      <nav class="desktop-dock" aria-label="Desktop apps">
+        <button type="button" data-open="window" aria-label="Open Terminal"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#app-terminal" /></svg><span class="dock-label" aria-hidden="true">Terminal</span></button>
+        <button type="button" data-open="document-window" aria-label="Open About"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#app-document" /></svg><span class="dock-label" aria-hidden="true">About</span></button>
+        <button type="button" data-open="browser-window" aria-label="Open Browser"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#app-browser" /></svg><span class="dock-label" aria-hidden="true">Browser</span></button>
+      </nav>
     </main>
 
-    <div class="viewport-error" id="viewport-error">
-      <div class="viewport-error-content">
-        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="7" x2="12" y2="13"/>
-          <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/>
-        </svg>
-        <h2>Viewport Too Small</h2>
-        <p>Your screen is too small to display this terminal properly.</p>
-        <p class="viewport-error-details">Minimum required: 1100×700 pixels</p>
-        <p class="viewport-error-current">Current: <span id="viewport-size">...</span></p>
-      </div>
-    </div>
-
+    <noscript><style>.document-window { z-index: 500 !important; } .document-scroll { overflow: auto; }</style><p class="noscript-note">JavaScript is off. You can still read and scroll the About document.</p></noscript>
     <script src="index.js"></script>
+    <script src="desktop.js"></script>
   </body>
 </html>
