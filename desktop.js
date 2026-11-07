@@ -84,19 +84,52 @@ appWindows.forEach((app) => {
   });
 });
 
-function toggleDocumentSize(app) {
-  app.classList.toggle('maximized');
+const normalWindowBounds = new WeakMap();
+
+function setWindowBounds(app, bounds) {
+  Object.assign(app.style, {
+    left: `${bounds.left}px`,
+    top: `${bounds.top}px`,
+    width: `${bounds.width}px`,
+    height: `${bounds.height}px`,
+    right: 'auto',
+    transform: 'none',
+  });
+}
+
+function toggleAppSize(app) {
+  if (app.classList.contains('maximized')) {
+    const bounds = normalWindowBounds.get(app);
+    if (bounds) setWindowBounds(app, bounds);
+    app.classList.remove('maximized');
+    normalWindowBounds.delete(app);
+  } else {
+    const bounds = app.getBoundingClientRect();
+    normalWindowBounds.set(app, {
+      left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height,
+    });
+    // Freeze right-anchored or CSS-sized windows at their current pixel bounds.
+    // The transition then has numeric start/end values, just like every other app.
+    app.style.transition = 'none';
+    setWindowBounds(app, bounds);
+    void app.offsetWidth;
+    app.style.transition = '';
+    app.classList.add('maximized');
+  }
   focusApp(app);
 }
+
+btnMaximize.addEventListener('click', () => toggleAppSize(windowEl));
+browserBtnMaximize.addEventListener('click', () => toggleAppSize(browserWindowEl));
 
 // Document windows use Pointer Events for mouse, pen and touch, retaining window bounds.
 function enableDocumentWindow(app) {
   const header = app.querySelector('.window-header');
   app.querySelector('[data-window-action="maximize"]').addEventListener('click', () => {
-    toggleDocumentSize(app);
+    toggleAppSize(app);
   });
   header.addEventListener('dblclick', (event) => {
-    if (!event.target.closest('button')) toggleDocumentSize(app);
+    if (!event.target.closest('button')) toggleAppSize(app);
   });
   header.addEventListener('pointerdown', (event) => {
     if (event.target.closest('button') || app.classList.contains('maximized')
@@ -310,7 +343,16 @@ setInterval(updateClock, 30000);
 // Clear desktop geometry when the viewport changes so title bars stay reachable.
 window.addEventListener('resize', () => {
   appWindows.forEach((app) => {
-    if (app.classList.contains('maximized')) return;
+    if (app.classList.contains('maximized')) {
+      const bounds = normalWindowBounds.get(app);
+      if (bounds) {
+        bounds.width = Math.min(bounds.width, window.innerWidth - 20);
+        bounds.height = Math.min(bounds.height, Math.max(300, window.innerHeight - 145));
+        bounds.left = Math.max(0, Math.min(bounds.left, window.innerWidth - bounds.width));
+        bounds.top = Math.max(35, Math.min(bounds.top, window.innerHeight - bounds.height - 80));
+      }
+      return;
+    }
     ['left', 'right', 'top', 'width', 'height', 'transform'].forEach((property) => {
       app.style[property] = '';
     });

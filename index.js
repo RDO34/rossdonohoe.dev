@@ -1346,22 +1346,7 @@ btnMinimize.addEventListener("click", () => {
   windowEl.classList.add("minimized");
 });
 
-btnMaximize.addEventListener("click", () => {
-  windowEl.classList.toggle("maximized");
-  if (windowEl.classList.contains("maximized")) {
-    windowEl.style.left = "0";
-    windowEl.style.top = "0";
-    windowEl.style.transform = "none";
-    windowEl.style.width = "100vw";
-    windowEl.style.height = "100dvh";
-  } else {
-    windowEl.style.width = "";
-    windowEl.style.height = "";
-    windowEl.style.transform = "";
-    windowEl.style.left = "";
-    windowEl.style.top = "";
-  }
-});
+
 
 // Browser Window Management
 const browserWindowEl = document.getElementById("browser-window");
@@ -1514,22 +1499,7 @@ browserBtnMinimize.addEventListener("click", () => {
   browserWindowEl.classList.add("minimized");
 });
 
-browserBtnMaximize.addEventListener("click", () => {
-  browserWindowEl.classList.toggle("maximized");
-  if (browserWindowEl.classList.contains("maximized")) {
-    browserWindowEl.style.left = "0";
-    browserWindowEl.style.top = "0";
-    browserWindowEl.style.transform = "none";
-    browserWindowEl.style.width = "100vw";
-    browserWindowEl.style.height = "100dvh";
-  } else {
-    browserWindowEl.style.width = "";
-    browserWindowEl.style.height = "";
-    browserWindowEl.style.transform = "none";
-    browserWindowEl.style.left = "100px";
-    browserWindowEl.style.top = "50px";
-  }
-});
+
 
 function navigateBrowser(value) {
   const destination = value.trim();
